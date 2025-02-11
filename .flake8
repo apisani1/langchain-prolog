@@ -1,0 +1,12 @@
+[flake8]
+exclude=.git,__pycache__,docs,old,build,dist
+max-complexity=15
+max-line-length=119
+extend-ignore=E203
+per-file-ignores =
+    model/__init__.py:F401
+    mode;/_api.py
+# F541: f string missing placeholders
+# W504: line break after binary operator
+# E402: module level import not at top of file
+#ignore=F541, W503, W504, E402,
