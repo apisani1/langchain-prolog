@@ -1,0 +1,94 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "langchain-prolog"
+version = "0.1.0"
+description = "An integration package connecting Prolog and LangChain"
+authors = ["Antonio Pisani"]
+readme = "README.md"
+repository = "https://github.com/apisani1/langchain-prolog"
+license = "MIT"
+packages = [{ include = "langchain_prolog", from = "src" }]
+keywords = ["langchain", "prolog", "swi-prolog", "llm", "agent"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Prolog",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+include = [
+    { path = "src/langchain_prolog/*.pl", format = "sdist" },
+    { path = "src/langchain_prolog/*.pl", format = "wheel" }
+]
+
+[tool.poetry.urls]
+"Source Code" = "https://github.com/langchain-ai/langchain/tree/master/libs/partners/prolog"
+"Release Notes" = "https://github.com/langchain-ai/langchain/releases?q=tag%3A%22prolog%3D%3D0%22&expanded=true"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+langchain-core = "^0.3.0"
+janus-swi = "^1.5.0"
+pydantic = "^2.0.0"
+
+[tool.coverage.run]
+omit = ["tests/*"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config --durations=5"
+markers = [
+    "compile: mark placeholder test used to compile integration tests without running them",
+    "integration: mark integration tests",
+    "requires_prolog: mark tests that require SWI-Prolog",]
+asyncio_mode = "auto"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+isort = "^6.0.0"
+mypy = "^1.15.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.0.0"
+pytest-asyncio = "^0.21.0"
+
+[tool.poetry.group.lint.dependencies]
+flake8 = "^7.1.0"
+
+[tool.poetry.group.typing.dependencies]
+mypy = "^1.10"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^8.1.3"
+sphinx-rtd-theme = "^3.0.2"
+myst-parser = "^4.0.0"
+sphinx-copybutton = "^0.5.2"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.9"
+disallow_untyped_defs = true
+warn_return_any = true
+warn_unused_configs = true
+check_untyped_defs = true
