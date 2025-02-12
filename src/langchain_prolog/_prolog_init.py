@@ -19,6 +19,7 @@ $env:SWIPL_LIB_DIR="C:\path\to\swipl\bin"
 import ctypes
 import os
 import platform
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -178,10 +179,23 @@ def initialize_windows() -> None:
         logger.warning(f"Could not load SWI-Prolog library: {e}")
 
 
+def is_doc_build() -> bool:
+    """Check if we're running in a documentation build environment."""
+    return (
+        os.environ.get("READTHEDOCS") == "True"  # Read the Docs
+        or os.environ.get("SPHINX_BUILD") == "True"  # Sphinx build
+        or "sphinx" in sys.modules  # Any documentation build
+    )
+
+
 def initialize_prolog() -> None:
     """Initialize SWI-Prolog environment based on operating system."""
-    system = platform.system().lower()
+    # Skip initialization if we're building documentation
+    if is_doc_build():
+        logger.info("Documentation build detected - skipping SWI-Prolog initialization")
+        return
 
+    system = platform.system().lower()
     try:
         if system == "darwin":
             initialize_macos()

@@ -34,7 +34,7 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 langchain-core = "^0.3.0"
-janus-swi = "^1.5.0"
+janus-swi = "^1.5.2"
 pydantic = "^2.0.0"
 
 [tool.coverage.run]
@@ -72,11 +72,16 @@ flake8 = "^7.1.0"
 [tool.poetry.group.typing.dependencies]
 mypy = "^1.10"
 
+[tool.poetry.group.docs]
+optional = true
+
 [tool.poetry.group.docs.dependencies]
 sphinx = "^8.1.3"
 sphinx-rtd-theme = "^3.0.2"
 myst-parser = "^4.0.0"
 sphinx-copybutton = "^0.5.2"
+sphinx-autobuild = "^2021.3.14"
+doc8 = ">=0.8.0"
 
 [tool.black]
 line-length = 100
@@ -92,3 +97,8 @@ disallow_untyped_defs = true
 warn_return_any = true
 warn_unused_configs = true
 check_untyped_defs = true
+
+[tool.doc8]
+max-line-length = 120
+ignore = ["D004", "D002"]
+ignore-path = ["docs/_build"]

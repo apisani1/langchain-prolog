@@ -14,21 +14,9 @@ release = "0.1.0"
 import os
 import sys
 
+os.environ["SPHINX_BUILD"] = "True"
 
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../.."))
-
-LIBRARIES = [
-    # "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/langchain",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/langchain_core",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/pydantic",
-    # "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/pydantic_core",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/janus_swi",
-]
-
-for lib in LIBRARIES:
-    if lib not in sys.path:
-        sys.path.append(lib)
+sys.path.insert(0, os.path.abspath("../src"))
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,6 +29,8 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinx_copybutton",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
 ]
 
 # Configure autodoc
@@ -52,7 +42,23 @@ autodoc_default_options = {
     "exclude-members": "__weakref__",
 }
 
+# Intersphinx configuration for external documentation
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "langchain": ("https://api.python.langchain.com/en/latest/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
+}
+
+intersphinx_disabled_domains = []
+intersphinx_timeout = 30
+intersphinx_cache_limit = 90  # days
+intersphinx_disabled_reftypes = ["*"]
+
 # Configure myst-parser
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+]
 myst_heading_anchors = 3
 
 # Configure copybutton
@@ -89,3 +95,43 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_theme_options = {
+    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "style_nav_header_background": "#2980B9",
+}
+
+# Suppress specific warnings
+suppress_warnings = [
+    "myst.header",
+]
+
+# Autodoc settings
+autodoc_mock_imports = ["janus_swi"]
+autoclass_content = "both"
+autodoc_member_order = "bysource"
+
+from unittest.mock import MagicMock
+
+
+# Configure autodoc to handle imports
+autodoc_mock_imports = [
+    "janus_swi",
+    "langchain_prolog._prolog_init.initialize_macos",
+    "langchain_prolog._prolog_init.initialize_linux",
+    "langchain_prolog._prolog_init.initialize_windows",
+]
+
+
+# For more complex mocking
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+MOCK_MODULES = MOCK_MODULES = [
+    "janus_swi",
+]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)

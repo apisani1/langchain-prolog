@@ -1,4 +1,4 @@
-.PHONY: all format lint test tests integration_tests docker_tests help extended_tests clean build publish
+.PHONY: all format lint test tests integration_tests docker_tests help extended_tests clean build publish docs docs-live docs-check
 
 # Default target executed when no arguments are given to make.
 all: help
@@ -51,6 +51,16 @@ publish-test: build
 publish: build
 	poetry publish
 
+docs:
+	cd docs && poetry run make html
+
+docs-live:
+	poetry run sphinx-autobuild docs docs/_build/html --open-browser
+
+docs-check:
+	poetry run doc8 docs/
+	cd docs && poetry run make linkcheck
+
 ######################
 # ENVIRONMENT
 ######################
@@ -63,6 +73,7 @@ install-dev:
 
 update:
 	poetry update
+
 
 
 ######################
