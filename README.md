@@ -21,7 +21,7 @@ blending of Prolog's logic programming capabilities into LangChain applications.
 
 ## Installation
 
-#### Prerequisites
+### Prerequisites
 
 - Python 3.10 or later
 - SWI-Prolog installed on your system

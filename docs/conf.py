@@ -19,12 +19,12 @@ sys.path.insert(0, os.path.abspath("../src"))
 
 from unittest.mock import MagicMock
 
+
 # Configure autodoc to handle imports
 autodoc_mock_imports = [
     "janus_swi",
-    "langchain_core",
-    "pydantic"
 ]
+
 
 # For more complex mocking
 class Mock(MagicMock):
@@ -32,7 +32,8 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['janus_swi']
+
+MOCK_MODULES = ["janus_swi"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
@@ -61,9 +62,9 @@ autodoc_default_options = {
 
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "langchain": ("https://api.python.langchain.com/en/latest/", None),  # Updated URL
-    "pydantic": ("https://docs.pydantic.dev/latest/", None),
+    'python': ('https://docs.python.org/3', None),
+    'langchain': ('https://api.python.langchain.com/en/latest/', None),
+    'pydantic': ('https://docs.pydantic.dev/latest/', None),
 }
 
 intersphinx_disabled_domains = []
@@ -112,3 +113,14 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_theme_options = {
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': False,
+    'style_nav_header_background': '#2980B9',
+}
+
+# Suppress specific warnings
+suppress_warnings = [
+    'myst.header',
+]
