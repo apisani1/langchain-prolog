@@ -5,14 +5,9 @@ build:
   tools:
     python: "3.10"
   apt_packages:
-    - software-properties-common
     - swi-prolog
 
   jobs:
-    pre_create_environment:
-      # Add SWI-Prolog PPA and update
-      - sudo apt-add-repository ppa:swi-prolog/stable
-      - sudo apt-get update
     post_create_environment:
       # Install poetry
       - pip install poetry
