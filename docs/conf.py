@@ -19,15 +19,20 @@ sys.path.insert(0, os.path.abspath("../src"))
 
 from unittest.mock import MagicMock
 
+# Configure autodoc to handle imports
+autodoc_mock_imports = [
+    "janus_swi",
+    "langchain_core",
+    "pydantic"
+]
 
+# For more complex mocking
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
-
-# Mock modules that require SWI-Prolog
-MOCK_MODULES = ["janus_swi"]
+MOCK_MODULES = ['janus_swi']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
