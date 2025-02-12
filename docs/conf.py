@@ -43,9 +43,14 @@ autodoc_default_options = {
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'langchain': ('https://python.langchain.com/en/latest/', None),
+    'langchain': ('https://api.python.langchain.com/en/latest/', None),  # Updated URL
     'pydantic': ('https://docs.pydantic.dev/latest/', None),
 }
+
+intersphinx_disabled_domains = []
+intersphinx_timeout = 30
+intersphinx_cache_limit = 90  # days
+intersphinx_disabled_reftypes = ["*"]
 
 # Configure myst-parser
 myst_enable_extensions = [
