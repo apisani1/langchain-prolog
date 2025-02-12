@@ -17,25 +17,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src"))
 
-from unittest.mock import MagicMock
-
-
-# Configure autodoc to handle imports
-autodoc_mock_imports = [
-    "janus_swi",
-]
-
-
-# For more complex mocking
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-
-MOCK_MODULES = ["janus_swi"]
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -62,9 +43,9 @@ autodoc_default_options = {
 
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'langchain': ('https://api.python.langchain.com/en/latest/', None),
-    'pydantic': ('https://docs.pydantic.dev/latest/', None),
+    "python": ("https://docs.python.org/3", None),
+    "langchain": ("https://api.python.langchain.com/en/latest/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 intersphinx_disabled_domains = []
@@ -114,13 +95,39 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_theme_options = {
-    'display_version': True,
-    'prev_next_buttons_location': 'bottom',
-    'style_external_links': False,
-    'style_nav_header_background': '#2980B9',
+    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "style_nav_header_background": "#2980B9",
 }
 
 # Suppress specific warnings
 suppress_warnings = [
-    'myst.header',
+    "myst.header",
 ]
+
+# Autodoc settings
+autodoc_mock_imports = ["janus_swi"]
+autoclass_content = "both"
+autodoc_member_order = "bysource"
+
+from unittest.mock import MagicMock
+
+
+# Configure autodoc to handle imports
+autodoc_mock_imports = [
+    "janus_swi",
+]
+
+
+# For more complex mocking
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+MOCK_MODULES = MOCK_MODULES = [
+    "janus_swi",
+]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)

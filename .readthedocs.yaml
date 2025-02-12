@@ -9,8 +9,7 @@ sphinx:
   configuration: docs/conf.py
   fail_on_warning: false
 
+# Don't try to install the package
 python:
   install:
     - requirements: docs/requirements.txt
-    - method: pip
-      path: .
