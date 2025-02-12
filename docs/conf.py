@@ -14,7 +14,21 @@ release = "0.1.0"
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../src'))
+
+sys.path.insert(0, os.path.abspath("../src"))
+
+from unittest.mock import MagicMock
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+# Mock modules that require SWI-Prolog
+MOCK_MODULES = ["janus_swi"]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # -- General configuration ---------------------------------------------------
@@ -28,7 +42,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx_copybutton",
     "sphinx.ext.githubpages",
-    "sphinx.ext.intersphinx"
+    "sphinx.ext.intersphinx",
 ]
 
 # Configure autodoc
@@ -42,9 +56,9 @@ autodoc_default_options = {
 
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'langchain': ('https://api.python.langchain.com/en/latest/', None),  # Updated URL
-    'pydantic': ('https://docs.pydantic.dev/latest/', None),
+    "python": ("https://docs.python.org/3", None),
+    "langchain": ("https://api.python.langchain.com/en/latest/", None),  # Updated URL
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 intersphinx_disabled_domains = []
