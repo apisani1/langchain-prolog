@@ -83,10 +83,11 @@ jobs:
 
       - name: Upload Documentation Artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: documentation
           path: docs/_build/html/
+          compression-level: 0  # New option in v4
 
       - name: Trigger RTD build
         if: success()
