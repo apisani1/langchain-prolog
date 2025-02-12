@@ -102,7 +102,7 @@ jobs:
         if: always()
         run: |
           cd docs
-          poetry run doc8 .
+          poetry run doc8 --config doc8.ini .
 
       - name: Upload Documentation Artifacts
         if: always()

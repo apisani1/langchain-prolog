@@ -97,3 +97,8 @@ disallow_untyped_defs = true
 warn_return_any = true
 warn_unused_configs = true
 check_untyped_defs = true
+
+[tool.doc8]
+max-line-length = 120
+ignore = ["D004", "D002"]
+ignore-path = ["docs/_build"]
