@@ -14,21 +14,7 @@ release = "0.1.0"
 import os
 import sys
 
-
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../.."))
-
-LIBRARIES = [
-    # "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/langchain",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/langchain_core",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/pydantic",
-    # "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/pydantic_core",
-    "/Users/antonio/miniconda3/envs/prolog/lib/python3.12/site-packages/janus_swi",
-]
-
-for lib in LIBRARIES:
-    if lib not in sys.path:
-        sys.path.append(lib)
+sys.path.insert(0, os.path.abspath('../src'))
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,6 +27,8 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinx_copybutton",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx"
 ]
 
 # Configure autodoc
@@ -52,7 +40,18 @@ autodoc_default_options = {
     "exclude-members": "__weakref__",
 }
 
+# Intersphinx configuration for external documentation
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'langchain': ('https://python.langchain.com/en/latest/', None),
+    'pydantic': ('https://docs.pydantic.dev/latest/', None),
+}
+
 # Configure myst-parser
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+]
 myst_heading_anchors = 3
 
 # Configure copybutton
