@@ -28,18 +28,25 @@ jobs:
           sudo apt-get install -y swi-prolog
           # Verify version
           swipl --version
-          # Show library paths
-          swipl -g "current_prolog_flag(unix_argv, X), writeln(X)" -g halt
+          # Get SWI-Prolog paths
+          echo "Checking SWI-Prolog configuration..."
+          swipl -g "current_prolog_flag(home, Home), writeln(Home)" -t halt
+          swipl -g "current_prolog_flag(executable, Exe), writeln(Exe)" -t halt
 
       - name: Set up SWI-Prolog environment
         run: |
-          # Get SWI-Prolog lib path
-          SWIPL_LIB_PATH=$(swipl -g "current_prolog_flag(home, Home), writeln(Home)" -g halt)
-          echo "SWIPL_LIB_PATH=$SWIPL_LIB_PATH" >> $GITHUB_ENV
-          # Set environment variables
-          echo "LD_LIBRARY_PATH=$SWIPL_LIB_PATH/lib/x86_64-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          echo "SWI_HOME_DIR=$SWIPL_LIB_PATH" >> $GITHUB_ENV
-          echo "SWIPL_PACK_PATH=$HOME/.local/share/swi-prolog/pack" >> $GITHUB_ENV
+          # Get SWI-Prolog home directory
+          SWIPL_HOME=$(swipl -g "current_prolog_flag(home, Home), writeln(Home)" -t halt)
+          echo "SWI_HOME_DIR=$SWIPL_HOME" >> $GITHUB_ENV
+
+          # Set library path
+          ARCH=$(uname -m)
+          echo "LD_LIBRARY_PATH=$SWIPL_HOME/lib/$ARCH-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # Verify environment
+          echo "SWI-Prolog environment:"
+          echo "SWI_HOME_DIR: $SWIPL_HOME"
+          echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
       - name: Install Poetry
         run: |
