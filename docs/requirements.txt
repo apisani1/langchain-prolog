@@ -7,6 +7,3 @@ sphinx-copybutton==0.5.2
 # Package dependencies (except janus-swi which needs SWI-Prolog)
 langchain-core>=0.3.0
 pydantic>=2.0.0
-
-# Development installation
--e ..
