@@ -12,10 +12,8 @@ build:
       # Configure poetry
       - poetry config virtualenvs.create false
     post_install:
-      # Install dependencies with poetry
-      - poetry install --only docs
-      # Install the package itself
-      - poetry install --only-root
+      # Install all dependencies including optional groups
+      - poetry install --with docs --all-extras
 
 sphinx:
   configuration: docs/conf.py
