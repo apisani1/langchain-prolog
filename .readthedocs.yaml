@@ -12,8 +12,10 @@ build:
       # Configure poetry
       - poetry config virtualenvs.create false
     post_install:
-      # Install all dependencies including optional groups
-      - poetry install --with docs --all-extras
+      # Install only documentation dependencies
+      - poetry install --only docs
+      # Install the package in development mode, skipping dependencies
+      - pip install --no-deps -e .
 
 sphinx:
   configuration: docs/conf.py
