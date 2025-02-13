@@ -14,6 +14,7 @@ release = "0.1.0"
 import os
 import sys
 
+os.environ["SPHINX_BUILD"] = "True"
 
 sys.path.insert(0, os.path.abspath("../src"))
 
@@ -117,6 +118,9 @@ from unittest.mock import MagicMock
 # Configure autodoc to handle imports
 autodoc_mock_imports = [
     "janus_swi",
+    "langchain_prolog._prolog_init.initialize_macos",
+    "langchain_prolog._prolog_init.initialize_linux",
+    "langchain_prolog._prolog_init.initialize_windows",
 ]
 
 
