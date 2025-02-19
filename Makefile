@@ -1,4 +1,4 @@
-.PHONY: all format lint test tests integration_tests docker_tests help extended_tests clean build publish docs docs-live docs-check
+.PHONY: all format lint test tests help clean build publish publish-test docs docs-live docs-check release-major release-minor release-patch release-rc rollback
 
 # Default target executed when no arguments are given to make.
 all: help
@@ -74,6 +74,29 @@ install-dev:
 update:
 	poetry update
 
+
+######################
+# RELEASE
+######################
+
+release-major:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py major --changes $${changes//,/ }
+
+release-minor:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py minor --changes $${changes//,/ }
+
+release-patch:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py patch --changes $${changes//,/ }
+
+release-rc:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py minor --pre-release rc --changes $${changes//,/ }
+
+rollback:
+	python scripts/version.py rollback
 
 
 ######################

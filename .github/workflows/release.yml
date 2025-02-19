@@ -32,10 +32,13 @@ jobs:
 
         - name: Install dependencies
           run: |
-            poetry install --with test,dev
+            poetry install --with test,dev --no-interaction
+            poetry show
 
         - name: Run tests
-          run: poetry run pytest
+          run: |
+              poetry run python -c "import sys; print(sys.path)"  # Debug Python path
+              poetry run pytest -v  # Add -v for verbose output
 
   release:
     needs: test
