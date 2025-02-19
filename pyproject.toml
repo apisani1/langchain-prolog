@@ -33,9 +33,19 @@ include = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-langchain-core = "^0.3.0"
+langchain = "^0.3.0"
 janus-swi = "^1.5.2"
 pydantic = "^2.0.0"
+
+[tool.semantic_release]
+version_variable = [
+    "src/langchain_prolog/__init__.py:__version__",
+    "pyproject.toml:version"
+]
+branch = "main"
+upload_to_pypi = false
+upload_to_release = true
+build_command = "poetry build"
 
 [tool.coverage.run]
 omit = ["tests/*"]
@@ -92,7 +102,7 @@ profile = "black"
 line_length = 100
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "0.1.8-beta.1"
 disallow_untyped_defs = true
 warn_return_any = true
 warn_unused_configs = true

@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+
+
+jobs:
+  test:
+        runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            python-version: ['3.10', '3.11']
+
+        steps:
+        - uses: actions/checkout@v4
+
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
+
+        - name: Install SWI-Prolog
+          run: |
+            sudo apt-add-repository ppa:swi-prolog/stable
+            sudo apt-get update
+            sudo apt-get install -y swi-prolog
+
+        - name: Install Poetry
+          run: |
+            curl -sSL https://install.python-poetry.org | python3 -
+            poetry --version
+
+        - name: Install dependencies
+          run: |
+            poetry install --with test,dev --no-interaction
+            poetry show
+
+        - name: Run tests
+          run: |
+              poetry run python -c "import sys; print(sys.path)"  # Debug Python path
+              poetry run pytest -v  # Add -v for verbose output
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry python-semantic-release
+
+      - name: Determine release type
+        id: release-type
+        run: |
+          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "type=release" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref }} =~ ^refs/tags/v.*-alpha|beta|rc ]]; then
+            echo "type=prerelease" >> $GITHUB_OUTPUT
+          else
+            echo "type=draft" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Get commits since last release
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"* %s" > RELEASE_NOTES.md
+          echo "Generated release notes for version $VERSION"
+          cat RELEASE_NOTES.md
+
+      - name: Check release notes
+        id: check-notes
+        run: |
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Error: Release notes are empty"
+            exit 1
+          fi
+          echo "Release notes content:"
+          cat RELEASE_NOTES.md
+
+      - name: Build package
+        run: poetry build
+
+      - name: Test PyPI release
+        if: steps.release-type.outputs.type != 'release'
+        env:
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry publish -r testpypi
+
+      - name: Test installation from TestPyPI
+        if: steps.release-type.outputs.type != 'release'
+        continue-on-error: false
+        run: |
+          # Create test environment
+          python -m venv test_env
+          source test_env/bin/activate
+
+          # Install SWI-Prolog
+          sudo apt-add-repository ppa:swi-prolog/stable
+          sudo apt-get update
+          sudo apt-get install -y swi-prolog
+
+          # Set up SWI-Prolog environment
+          SWIPL_HOME=$(swipl -g "current_prolog_flag(home, Home), writeln(Home)" -t halt)
+          echo "SWI_HOME_DIR=$SWIPL_HOME" >> $GITHUB_ENV
+          ARCH=$(uname -m)
+          echo "LD_LIBRARY_PATH=$SWIPL_HOME/lib/$ARCH-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # Install package from TestPyPI
+          pip install "langchain>=0.3.0"
+          pip install --index-url https://test.pypi.org/simple/ \
+              --extra-index-url https://pypi.org/simple \
+              langchain-prolog
+
+          # Set up Python environment
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          export PYTHONPATH="${SITE_PACKAGES}:${PYTHONPATH:-}"
+
+          # Test import and version
+          python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          body_path: RELEASE_NOTES.md
+          draft: ${{ steps.release-type.outputs.type == 'draft' }}
+          prerelease: ${{ steps.release-type.outputs.type == 'prerelease' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        if: steps.release-type.outputs.type == 'release'
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish
+
+      - name: Update ReadTheDocs
+        if: steps.release-type.outputs.type == 'release'
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+
+          # Update main documentation
+          echo "Updating main documentation..."
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"branches": ["main"]}' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/
+
+          # Create and activate version-specific documentation
+          echo "Creating version-specific documentation: ${VERSION}"
+          curl -X PATCH \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"active": true}' \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/"
+        continue-on-error: true
