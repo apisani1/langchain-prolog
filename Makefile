@@ -81,22 +81,41 @@ update:
 
 release-major:
 	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py major --changes $${changes//,/ }
+	python scripts/version.py create major --changes $${changes//,/ }
 
 release-minor:
 	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py minor --changes $${changes//,/ }
+	python scripts/version.py create minor --changes $${changes//,/ }
 
 release-patch:
 	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py patch --changes $${changes//,/ }
+	python scripts/version.py create patch --changes $${changes//,/ }
 
 release-rc:
 	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py minor --pre-release rc --changes $${changes//,/ }
+	python scripts/version.py create minor --pre-release rc --changes $${changes//,/ }
+
+release-beta:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py create patch --pre-release beta --changes $${changes//,/ }
+
+release-alpha:
+	@read -p "Enter changes (comma-separated): " changes; \
+	python scripts/version.py create patch --pre-release alpha --changes $${changes//,/ }
 
 rollback:
 	python scripts/version.py rollback
+
+# Helper target to show available commands
+help-release:
+	@echo "Available release commands:"
+	@echo "  make release-major  - Create major release"
+	@echo "  make release-minor  - Create minor release"
+	@echo "  make release-patch  - Create patch release"
+	@echo "  make release-rc     - Create release candidate"
+	@echo "  make release-beta   - Create beta release"
+	@echo "  make release-alpha  - Create alpha release"
+	@echo "  make rollback      - Rollback last release"
 
 
 ######################
