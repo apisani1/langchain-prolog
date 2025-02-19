@@ -92,10 +92,28 @@ jobs:
       - name: Test installation from TestPyPI
         if: steps.release-type.outputs.type != 'release'
         run: |
+          # Create test environment
           python -m venv test_env
           source test_env/bin/activate
-          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple langchain-prolog
-          python -c "import langchain_prolog; print(langchain_prolog.__version__)"
+
+          # Install SWI-Prolog
+          sudo apt-add-repository ppa:swi-prolog/stable
+          sudo apt-get update
+          sudo apt-get install -y swi-prolog
+
+          # Set up SWI-Prolog environment
+          SWIPL_HOME=$(swipl -g "current_prolog_flag(home, Home), writeln(Home)" -t halt)
+          echo "SWI_HOME_DIR=$SWIPL_HOME" >> $GITHUB_ENV
+          ARCH=$(uname -m)
+          echo "LD_LIBRARY_PATH=$SWIPL_HOME/lib/$ARCH-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # Install package from TestPyPI
+          pip install --index-url https://test.pypi.org/simple/ \
+              --extra-index-url https://pypi.org/simple \
+              langchain-prolog
+
+          # Test import and version
+          python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
