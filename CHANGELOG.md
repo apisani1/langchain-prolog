@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7-beta.1] - 2025-02-20
+
+### Changes
+* Testing pre-release workflow
+
 ## [0.1.6-beta.1] - 2025-02-20
 
 ### Changes

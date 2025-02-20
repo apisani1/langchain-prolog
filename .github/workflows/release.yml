@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
 
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+
 jobs:
   test:
         runs-on: ubuntu-latest
@@ -127,8 +132,7 @@ jobs:
           body_path: RELEASE_NOTES.md
           draft: ${{ steps.release-type.outputs.type == 'draft' }}
           prerelease: ${{ steps.release-type.outputs.type == 'prerelease' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to PyPI
         if: steps.release-type.outputs.type == 'release'
