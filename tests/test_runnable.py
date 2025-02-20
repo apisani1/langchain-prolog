@@ -1,4 +1,3 @@
-# test_prolog.py
 from pathlib import Path
 
 import pytest

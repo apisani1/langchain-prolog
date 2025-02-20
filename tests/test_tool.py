@@ -1,4 +1,3 @@
-# tests/test_tool.py
 from pathlib import Path
 from typing import (
     Any,
