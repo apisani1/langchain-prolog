@@ -112,6 +112,10 @@ jobs:
               --extra-index-url https://pypi.org/simple \
               langchain-prolog
 
+          # Set up Python environment
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          export PYTHONPATH="${SITE_PACKAGES}:${PYTHONPATH:-}"
+
           # Test import and version
           python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
 

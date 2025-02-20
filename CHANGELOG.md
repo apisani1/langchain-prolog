@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4-beta.1] - 2025-02-19
+
+### Changes
+* Fix semantic version
+
 ## [0.1.3-beta.1] - 2025-02-19
 
 ### Changes
