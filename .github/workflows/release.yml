@@ -116,6 +116,9 @@ jobs:
           SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
           export PYTHONPATH="${SITE_PACKAGES}:${PYTHONPATH:-}"
 
+          echo "PYTHONPATH: $PYTHONPATH"
+          echo "Site packages: $SITE_PACKAGES"
+
           # Test import and version
           python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
 
