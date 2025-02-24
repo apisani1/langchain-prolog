@@ -47,6 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,6 +83,16 @@ jobs:
           echo "Generated release notes for version $VERSION"
           cat RELEASE_NOTES.md
 
+      - name: Check release notes
+        id: check-notes
+        run: |
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Error: Release notes are empty"
+            exit 1
+          fi
+          echo "Release notes content:"
+          cat RELEASE_NOTES.md
+
       - name: Build package
         run: poetry build
 
@@ -95,6 +106,7 @@ jobs:
 
       - name: Test installation from TestPyPI
         if: steps.release-type.outputs.type != 'release'
+        continue-on-error: false
         run: |
           # Create test environment
           python -m venv test_env
@@ -139,21 +151,24 @@ jobs:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
 
-      - name: Update RTD
+      - name: Update ReadTheDocs
         if: steps.release-type.outputs.type == 'release'
         run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+
+          # Update main documentation
+          echo "Updating main documentation..."
           curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"branches": ["main"]}' \
             https://readthedocs.org/api/v3/projects/langchain-prolog/versions/
 
-      - name: Activate new version in RTD
-        if: steps.release-type.outputs.type == 'release'
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          # Create and activate version-specific documentation
+          echo "Creating version-specific documentation: ${VERSION}"
           curl -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"active": true}' \
             "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/"
+        continue-on-error: true
