@@ -6,15 +6,14 @@
 
 # LangChain-Prolog
 
-A Python library that integrates SWI-Prolog with LangChain, allowing seamless
-blending of Prolog's logic programming capabilities into LangChain applications.
+A Python library that integrates SWI-Prolog with LangChain. It enables seamless blending of Prolog’s logic programming capabilities into LangChain applications, allowing rule-based reasoning, knowledge representation, and logical inference alongside GenAI models.
 
 
 ## Features
 
 - Seamless integration between LangChain and SWI-Prolog
-- Use Prolog queries as LangChain runnables and tools
-- Invoke Prolog predicates from LangChain LLM models, chains and agents
+- Use Prolog queries as LangChain's runnables and tools
+- Invoke Prolog predicates from LangChain's LLM models, chains and agents
 - Support for both synchronous and asynchronous operations
 - Comprehensive error handling and logging
 - Cross-platform support (macOS, Linux, Windows)
@@ -25,12 +24,12 @@ blending of Prolog's logic programming capabilities into LangChain applications.
 
 - Python 3.10 or later
 - SWI-Prolog installed on your system
-- The following python libraries installed:
-    - langchain 0.3.0 or later
-    - janus-swi 1.5.0 or later
-    - pydantic 0.2.0 or later
+- The following Python libraries will be installed:
+    - `langchain` 0.3.0 or later
+    - `janus-swi` 1.5.0 or later
+    - `pydantic` 2.0.0 or later
 
-langchain-prolog can be installed using pip:
+Once SWI-Prolog has been installed, langchain-prolog can be installed using pip:
 ```bash
 pip install langchain-prolog
 ```
@@ -39,7 +38,7 @@ pip install langchain-prolog
 
 The PrologRunnable class allows the generation of langchain runnables that use Prolog rules to generate answers.
 
-Let's assume that we have the following set of Prolog rules in the file family.pl:
+Let's use the following set of Prolog rules in the file `family.pl`:
 
 ```prolog
 parent(john, bianca, mary).
@@ -48,7 +47,7 @@ parent(peter, patricia, jennifer).
 partner(X, Y) :- parent(X, Y, _).
 ```
 
-There are three diferent ways to use a PrologRunnable to query Prolog:
+There are three ways to use a PrologRunnable to query Prolog:
 
 #### 1) Using a Prolog runnable with a full predicate string
 
@@ -118,7 +117,7 @@ The PrologTool class allows the generation of langchain tools that use Prolog ru
 
 See the Runnable Interface section for the conventions on hown to pass variables and values to the Prolog interpreter.
 
-Let's assume that we have the following set of Prolog rules in the file family.pl:
+Let's use the following set of Prolog rules in the file `family.pl`:
 
 ```prolog
 parent(john, bianca, mary).
@@ -127,30 +126,39 @@ parent(peter, patricia, jennifer).
 partner(X, Y) :- parent(X, Y, _).
 ```
 
-There are two ways to use a Prolog tool:
+There are three diferent ways to use a PrologTool to query Prolog:
 
 ### 1) Using a Prolog tool with an LLM and function calling
 
 First create the Prolog tool:
 ```python
-from langchain_prolog import PrologConfig, PrologTool
+from langchain_prolog import PrologConfig, PrologRunnable, PrologTool
 
-schema = PrologRunnable.create_schema('parent', ['men', 'women', 'child'])
+schema = PrologRunnable.create_schema("parent", ["man", "woman", "child"])
 config = PrologConfig(
-            rules_file="family.pl",
-            query_schema=schema,
-        )
+    rules_file="family.pl",
+    query_schema=schema,
+)
 prolog_tool = PrologTool(
     prolog_config=config,
     name="family_query",
     description="""
         Query family relationships using Prolog.
         parent(X, Y, Z) implies only that Z is a child of X and Y.
-        Input can be a query string like 'parent(john, X, Y)'
-        or 'john, X, Y'"
-        You have to specify 3 parameters: men, woman, child.
-        Do not use quotes.
-    """
+        Input must be a dictionary like:
+        {
+            'man': 'richard',
+            'woman': 'valery',
+            'child': None,
+        
+        }
+        Use 'None' to indicate a variable that need to be instantiated by Prolog
+        The query will return:
+            - 'True': if the relationship 'child' is a child of 'men' and 'women' holds.
+            - 'False' if the relationship 'child' is a child of 'man' and 'woman' does not holds.
+            - A list of dictionaries with all the answers to the Prolog query
+        Do not use double quotes.
+    """,
 )
 ```
 
@@ -169,7 +177,7 @@ print(response.tool_calls[0])
 The LLM will respond with a tool call request:
 ```python
 {'name': 'family_query',
- 'args': {'men': 'john', 'women': None, 'child': None},
+ 'args': {'man': 'john', 'woman': None, 'child': None},
  'id': 'call_V6NUsJwhF41G9G7q6TBmghR0',
  'type': 'tool_call'}
  ```
@@ -181,7 +189,7 @@ print(tool_msg)
  ```
 The tool returns a list with all the solutions for the query:
  ```python
- content='[{"Women": "bianca", "Child": "mary"}, {"Women": "bianca", "Child": "michael"}]'
+ content='[{"Woman": "bianca", "Child": "mary"}, {"Woman": "bianca", "Child": "michael"}]'
  name='family_query'
  tool_call_id='call_V6NUsJwhF41G9G7q6TBmghR0'
  ```
@@ -195,28 +203,37 @@ The tool returns a list with all the solutions for the query:
  John has two children: Mary and Michael. Their mother is Bianca.
  ```
 
-### 2) Using a Prolog tool with an agent
+### 2) Using a Prolog tool with a LangChain agent
 
 First create the Prolog tool:
 ```python
-from langchain_prolog import PrologConfig, PrologTool
+from langchain_prolog import PrologConfig, PrologRunnable, PrologTool
 
-schema = PrologRunnable.create_schema('parent', ['men', 'women', 'child'])
+schema = PrologRunnable.create_schema("parent", ["man", "woman", "child"])
 config = PrologConfig(
-            rules_file="family.pl",
-            query_schema=schema,
-        )
+    rules_file="family.pl",
+    query_schema=schema,
+)
 prolog_tool = PrologTool(
     prolog_config=config,
     name="family_query",
     description="""
         Query family relationships using Prolog.
         parent(X, Y, Z) implies only that Z is a child of X and Y.
-        Input can be a query string like 'parent(john, X, Y)'
-        or 'john, X, Y'"
-        You have to specify 3 parameters: men, woman, child.
-        Do not use quotes.
-    """
+        Input must be a dictionary like:
+        {
+            'man': 'richard',
+            'woman': 'valery',
+            'child': None,
+        
+        }
+        Use 'None' to indicate a variable that need to be instantiated by Prolog
+        The query will return:
+            - 'True': if the relationship 'child' is a child of 'men' and 'women' holds.
+            - 'False' if the relationship 'child' is a child of 'man' and 'woman' does not holds.
+            - A list of dictionaries with all the answers to the Prolog query
+        Do not use double quotes.
+    """,
 )
 ```
 Then pass it to the agent's constructor:
@@ -239,8 +256,60 @@ agent_executor = AgentExecutor(agent=agent, tools=tools)
 The agent takes the query and use the Prolog tool if needed:
 ```python
 answer = agent_executor.invoke({"input": "Who are John's children?"})
-print(answer)
+print(answer["output"])
 ```
 Then the agent recieves the tool response as part of the {agent_scratchpad} placeholder and generates the answer:
 ```python
-{'input': "Who are John's children?", 'output': 'John has two children: Mary and Michael, with Bianca as their mother.'}
+John has two children: Mary and Michael. Their mother is Bianca.
+```
+
+### 3) Using a Prolog tool with a LangGraph agent
+
+First create the Prolog tool:
+```python
+from langchain_prolog import PrologConfig, PrologRunnable, PrologTool
+
+schema = PrologRunnable.create_schema("parent", ["man", "woman", "child"])
+config = PrologConfig(
+    rules_file="family.pl",
+    query_schema=schema,
+)
+prolog_tool = PrologTool(
+    prolog_config=config,
+    name="family_query",
+    description="""
+        Query family relationships using Prolog.
+        parent(X, Y, Z) implies only that Z is a child of X and Y.
+        Input must be a dictionary like:
+        {
+            'man': 'richard',
+            'woman': 'valery',
+            'child': None,
+        
+        }
+        Use 'None' to indicate a variable that need to be instantiated by Prolog
+        The query will return:
+            - 'True': if the relationship 'child' is a child of 'men' and 'women' holds.
+            - 'False' if the relationship 'child' is a child of 'man' and 'woman' does not holds.
+            - A list of dictionaries with all the answers to the Prolog query
+        Do not use double quotes.
+    """,
+)
+```
+Then pass it to the agent's constructor:
+```python
+from langgraph.prebuilt import create_react_agent
+
+lg_agent = create_react_agent(llm, [prolog_tool])
+```
+The agent takes the query and use the Prolog tool if needed:
+```python
+messages =lg_agent.invoke({"messages": [("human", query)]})
+messages["messages"][-1].pretty_print()
+```
+Then the agent receives​ the tool response and generates the answer:
+```python
+================================== Ai Message ==================================
+
+John has two children: Mary and Michael, with Bianca as their mother.
+```
