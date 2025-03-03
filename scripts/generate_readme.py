@@ -1,6 +1,6 @@
 """Generate README.md from documentation files."""
 
-DOCS_PATH = "../docs/source/"
+DOCS_PATH = "./docs/source/"
 ELEMENTS = [
     ("badges", "", ""),
     ("home", "", ""),
@@ -33,7 +33,7 @@ def generate_readme():
         readme.append(content)
 
     # Write the README.md
-    with open("../README.md", "w") as f:
+    with open("README.md", "w") as f:
         f.write("\n".join(readme))
 
 

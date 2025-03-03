@@ -2,7 +2,7 @@
 
 The PrologRunnable class allows the generation of langchain runnables that use Prolog rules to generate answers.
 
-Let's assume that we have the following set of Prolog rules in the file family.pl:
+Let's use the following set of Prolog rules in the file `family.pl`:
 
 ```prolog
 parent(john, bianca, mary).
@@ -11,7 +11,7 @@ parent(peter, patricia, jennifer).
 partner(X, Y) :- parent(X, Y, _).
 ```
 
-There are three diferent ways to use a PrologRunnable to query Prolog:
+There are three ways to use a PrologRunnable to query Prolog:
 
 #### 1) Using a Prolog runnable with a full predicate string
 
