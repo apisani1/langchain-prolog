@@ -24,4 +24,4 @@ Special thanks to the team at @LangChain for their support in bringing this inte
 
 I’d love to hear your thoughts. Try it out and let me know what you think!
 
-#LangChain #Prolog #AI #LLM #GenAI #LogicProgramming #SymbolicAI #MachineLearning #AITooling #OpenSource #PythonLibrary
+#LangChain #Prolog #AI #LLM #GenAI #LogicProgramming #SymbolicAI #Ontology #KnowledgeGraphs #KG #SemanticWeb #OWL #RDF #ExpertSystems #AITooling #OpenSource #PythonLibrary
