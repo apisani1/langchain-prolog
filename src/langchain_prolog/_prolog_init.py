@@ -12,8 +12,8 @@ export SWIPL_HOME_DIR=/path/to/swi-prolog
 export SWIPL_LIB_DIR=/path/to/swi-prolog/lib/x86_64-linux
 
 # For Windows (in PowerShell)
-$env:SWIPL_HOME_DIR="C:\path\to\swipl"
-$env:SWIPL_LIB_DIR="C:\path\to\swipl\bin"
+$env:SWIPL_HOME_DIR="C:\\path\\to\\swipl"
+$env:SWIPL_LIB_DIR="C:\\path\\to\\swipl\\bin"
 """
 
 import ctypes

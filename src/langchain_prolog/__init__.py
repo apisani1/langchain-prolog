@@ -23,6 +23,7 @@ Requirements:
 
 from pydantic import ValidationError
 
+from .__version__ import __version__  # noqa: F401
 from ._prolog_init import initialize_prolog
 from .exceptions import (
     PrologFileNotFoundError,
@@ -38,7 +39,6 @@ from .runnable import (
     PrologRunnable,
 )
 from .tool import PrologTool
-from .__version__ import __version__
 
 
 __all__ = [
