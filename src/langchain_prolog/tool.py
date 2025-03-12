@@ -85,7 +85,7 @@ class PrologTool(Tool):
         self, tool_input: Union[str, dict], tool_call_id: Optional[str]
     ) -> tuple[tuple, dict]:
         """Handle tool input for function calling."""
-        args, kwargs = BaseTool._to_args_and_kwargs(self, tool_input, tool_call_id)
+        args, kwargs = BaseTool._to_args_and_kwargs(self, tool_input, tool_call_id)  # pylint: disable=protected-access
         args = args if isinstance(args, tuple) else () if args is None else (args,)
         kwargs = (
             kwargs if isinstance(kwargs, dict) else {} if kwargs is None else {"__arg1": kwargs}

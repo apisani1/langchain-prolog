@@ -32,25 +32,17 @@ class LangChainPrologException(Exception):
 class PrologRuntimeError(LangChainPrologException):
     """Raised when a Prolog execution error occurs."""
 
-    pass
-
 
 class PrologInitializationError(LangChainPrologException):
     """Raised when Prolog initialization fails."""
-
-    pass
 
 
 class PrologValueError(LangChainPrologException):
     """Raised when a value error occurs."""
 
-    pass
-
 
 class PrologFileNotFoundError(LangChainPrologException):
     """Raised when a file is not found."""
-
-    pass
 
 
 class PrologToolException(LangChainPrologException):

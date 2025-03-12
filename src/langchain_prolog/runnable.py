@@ -14,7 +14,6 @@ from typing import (
     Type,
     Union,
 )
-from uuid import UUID
 
 from pydantic import (
     BaseModel,
@@ -61,9 +60,7 @@ class _DoNothing(BaseCallbackHandler):
     It is used when PrologRunnable is used as a tool and not as a chain.
     """
 
-    def on_chain_start(
-        self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
-    ) -> None:
+    def on_chain_start(self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any) -> None:
         pass
 
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
@@ -79,19 +76,13 @@ class PrologConfig(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
     )
-    rules_file: Optional[Union[str, Path]] = Field(
-        default=None, description="Path to the Prolog rules file"
-    )
+    rules_file: Optional[Union[str, Path]] = Field(default=None, description="Path to the Prolog rules file")
     default_predicate: Optional[str] = Field(
         default=None,
         description="Default predicate to use when no predicate is specified",
     )
-    query_schema: Optional[Type[BaseModel]] = Field(
-        default=None, description="Pydantic model for input validation"
-    )
-    prolog_flags: Dict[str, Any] = Field(
-        default_factory=dict, description="Custom Prolog flags to set"
-    )
+    query_schema: Optional[Type[BaseModel]] = Field(default=None, description="Pydantic model for input validation")
+    prolog_flags: Dict[str, Any] = Field(default_factory=dict, description="Custom Prolog flags to set")
 
     @field_validator("rules_file", mode="before")
     def validate_rules_file(cls, v: Optional[Union[str, Path]]) -> Optional[Path]:
@@ -121,7 +112,7 @@ class PrologConfig(BaseModel):
                 if not flag:
                     break
                 valid_flags.add(flag["Flag"])
-            except:
+            except Exception:
                 pass
         invalid_flags = set(v.keys()) - valid_flags
         if invalid_flags:
@@ -241,11 +232,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         Raises:
             PrologValueError: If predicate_name is empty or arg_names contains invalid names
         """
-        if (
-            not predicate_name
-            or not isinstance(predicate_name, str)
-            or not predicate_name.isidentifier()
-        ):
+        if not predicate_name or not isinstance(predicate_name, str) or not predicate_name.isidentifier():
             raise PrologValueError("predicate_name must be valid Python identifiers")
 
         if not all(isinstance(name, str) and name.isidentifier() for name in arg_names):
@@ -305,9 +292,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
             else:
                 # Use default predicate if no explicit predicate is provided
                 if not self._prolog_config.default_predicate:
-                    raise PrologValueError(
-                        f"No default predicate set for argument-only query: {input_data}"
-                    )
+                    raise PrologValueError(f"No default predicate set for argument-only query: {input_data}")
                 return f"{self._prolog_config.default_predicate}({input_data})"
 
         elif isinstance(input_data, BaseModel):
@@ -355,9 +340,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         """Clean a single solution dictionary."""
         return {k: v for k, v in solution.items() if k != "truth"}
 
-    def invoke(
-        self, input: PrologInput, config: Optional[RunnableConfig] = None, **kwargs: Any
-    ) -> PrologResult:
+    def invoke(self, input: PrologInput, config: Optional[RunnableConfig] = None, **kwargs: Any) -> PrologResult:
         """
         Execute a Prolog query and return all solutions at once.
 
@@ -584,7 +567,8 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         Args:
             inputs (list[str | dict | BaseModel]): List of Prolog queries
             config (RunnableConfig | list[RunnableConfig], optional): Optional langchain runnable configuration(s)
-            return_exceptions (bool): If True, include exceptions as PrologRuntimeError in the results. Defaults to False.
+            return_exceptions (bool): If True, include exceptions as PrologRuntimeError in the results.
+                                      Defaults to False.
             **kwargs: Additional arguments for Prolog query execution.
                     Supported keyword arguments by janus-swi: inputs, truth_vals
 
@@ -632,7 +616,8 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         Args:
             inputs (list[str | dict | BaseModel]): List of Prolog queries
             config (list[RunnableConfig], optional): Optional langchain runnable configuration(s)
-            return_exceptions (bool): If True, include exceptions as PrologRuntimeError in the results. Defaults to False.
+            return_exceptions (bool): If True, include exceptions as PrologRuntimeError in the results.
+                                    Defaults to False.
             **kwargs: Additional arguments for Prolog query execution.
                     Supported keyword arguments by janus-swi: inputs, truth_vals
 
@@ -715,7 +700,5 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
             PrologValueError: If inputs is not a list
             PrologRuntimeError: If execution fails and return_exceptions is False
         """
-        for result in self.batch_as_completed(
-            inputs, config=config, return_exceptions=return_exceptions, **kwargs
-        ):
+        for result in self.batch_as_completed(inputs, config=config, return_exceptions=return_exceptions, **kwargs):
             yield result
