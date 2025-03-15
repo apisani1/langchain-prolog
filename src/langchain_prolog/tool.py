@@ -6,8 +6,6 @@ from typing import (
     Union,
 )
 
-from pydantic import Field
-
 from langchain_core.callbacks import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
@@ -18,6 +16,8 @@ from langchain_core.tools import (
     Tool,
 )
 from langchain_core.tools.base import _get_runnable_config_param
+from pydantic import Field
+
 from langchain_prolog import (
     PrologConfig,
     PrologRunnable,

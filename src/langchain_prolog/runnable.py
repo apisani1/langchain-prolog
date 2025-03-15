@@ -15,15 +15,6 @@ from typing import (
     Union,
 )
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    PrivateAttr,
-    create_model,
-    field_validator,
-)
-
 import janus_swi as janus
 import langchain
 from langchain_core.callbacks.manager import (
@@ -36,6 +27,14 @@ from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import (
     RunnableConfig,
     get_config_list,
+)
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    create_model,
+    field_validator,
 )
 
 from .exceptions import (
