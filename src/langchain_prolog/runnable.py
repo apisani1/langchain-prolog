@@ -427,7 +427,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         """
         return self.invoke(input, config=config, **kwargs)
 
-    def stream(
+    def stream(  # noqa: R701
         self, input: PrologInput, config: Optional[RunnableConfig] = None, **kwargs: Any
     ) -> Iterator[PrologResult]:
         """
