@@ -260,10 +260,9 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
             return self._prolog_config.default_predicate + "()"
         if isinstance(input_data, (str, BaseModel)):
             return input_data
-        elif isinstance(input_data, dict) and self._prolog_config.query_schema:
+        if isinstance(input_data, dict) and self._prolog_config.query_schema:
             return self._prolog_config.query_schema(**input_data)
-        else:
-            raise PrologValueError("Invalid input type or missing schema for dictionary input")
+        raise PrologValueError("Invalid input type or missing schema for dictionary input")
 
     def _build_query(self, input_data: Union[str, BaseModel]) -> str:
         """
@@ -288,21 +287,21 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
                 if input_data.count("(") != input_data.count(")"):
                     raise PrologValueError("Mismatched parentheses in query")
                 return input_data
-            else:
-                # Use default predicate if no explicit predicate is provided
-                if not self._prolog_config.default_predicate:
-                    raise PrologValueError(f"No default predicate set for argument-only query: {input_data}")
-                return f"{self._prolog_config.default_predicate}({input_data})"
 
-        elif isinstance(input_data, BaseModel):
+            # Use default predicate if no explicit predicate is provided
+            if not self._prolog_config.default_predicate:
+                raise PrologValueError(f"No default predicate set for argument-only query: {input_data}")
+            return f"{self._prolog_config.default_predicate}({input_data})"
+
+        if isinstance(input_data, BaseModel):
             # Convert Pydantic model to Prolog query. None values are converted to Prolog variables
             params = []
             for field_name, field_value in input_data:
                 value = field_value if field_value is not None else field_name.capitalize()
                 params.append(str(value))
             return f"{input_data.__class__.__name__}({', '.join(params)})"
-        else:
-            raise PrologValueError("Input must be either string or valid Pydantic model")
+
+        raise PrologValueError("Input must be either string or valid Pydantic model")
 
     @staticmethod
     def _get_prolog_kwargs(config: RunnableConfig) -> Dict[str, str]:
@@ -500,7 +499,8 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
                     run_manager.on_chain_end({"output": False})
                     yield False
                     return
-                elif all(sol == {"truth": True} for sol in solutions):
+
+                if all(sol == {"truth": True} for sol in solutions):
                     run_manager.on_chain_end({"output": True})
                     yield True
                     return
