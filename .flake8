@@ -1,5 +1,5 @@
 [flake8]
-exclude=.git,__pycache__,docs,old,build,dist
+exclude=.git,__pycache__,docs,old,build,dist,tests
 radon-max-cc=15
 max-line-length=119
 extend-ignore=

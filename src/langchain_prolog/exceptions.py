@@ -26,7 +26,7 @@ class LangChainPrologException(Exception):
 
         # Log the exception
         log_func = getattr(logger, log_level)
-        log_func(message, exc_info=exc_info)
+        log_func("%s", message, exc_info=exc_info)
 
 
 class PrologRuntimeError(LangChainPrologException):
