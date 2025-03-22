@@ -26,23 +26,31 @@ class LangChainPrologException(Exception):
 
         # Log the exception
         log_func = getattr(logger, log_level)
-        log_func("%s", message, exc_info=exc_info)
+        log_func(message, exc_info=exc_info)
 
 
 class PrologRuntimeError(LangChainPrologException):
     """Raised when a Prolog execution error occurs."""
 
+    pass
+
 
 class PrologInitializationError(LangChainPrologException):
     """Raised when Prolog initialization fails."""
+
+    pass
 
 
 class PrologValueError(LangChainPrologException):
     """Raised when a value error occurs."""
 
+    pass
+
 
 class PrologFileNotFoundError(LangChainPrologException):
     """Raised when a file is not found."""
+
+    pass
 
 
 class PrologToolException(LangChainPrologException):
