@@ -3,6 +3,10 @@
 # Default target executed when no arguments are given to make.
 all: help
 
+######################
+# TESTING
+######################
+
 # Define a variable for the test file path.
 TEST_FILE ?= tests/
 
@@ -17,16 +21,15 @@ test tests:
 # Define a variable for Python and notebook files.
 PYTHON_FILES=./src/
 MYPY_CACHE=.mypy_cache
-lint format: PYTHON_FILES=./src/
-lint_diff format_diff: PYTHON_FILES=$(shell git diff --relative=libs/partners/prolog --name-only --diff-filter=d master | grep -E '\.py$$|\.ipynb$$')
-lint_package: PYTHON_FILES=langchain_prolog
-lint_tests: PYTHON_FILES=tests
+lint_diff format_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d main | grep -E '\.py$$|\.ipynb$$')
+lint_diff: MYPY_CACHE=.mypy_cache_diff
+lint_tests format_tests: PYTHON_FILES=tests
 lint_tests: MYPY_CACHE=.mypy_cache_test
 
-lint:
+lint lint_diff lint_tests:
 	[ "$(PYTHON_FILES)" = "" ] || mkdir -p $(MYPY_CACHE) && poetry run mypy $(PYTHON_FILES) --cache-dir $(MYPY_CACHE)
 
-format:
+format format_diff format_tests:
 	[ "$(PYTHON_FILES)" = "" ] || poetry run black  $(PYTHON_FILES)
 
 ######################
