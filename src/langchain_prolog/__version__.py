@@ -1,3 +1,4 @@
-VERSION = (0, 1, 0)  # Major, Minor, Patch
+# This file contains the version information for the langchain_prolog package.
+# Major, Minor, Patch, Prerelease, Build
 
-__version__ = ".".join(map(str, VERSION))
+__version__ = "0.1.0.post1"

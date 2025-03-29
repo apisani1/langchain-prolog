@@ -1,4 +1,4 @@
-.PHONY: all format lint test tests help clean build publish publish-test docs docs-live docs-check release-major release-minor release-patch release-rc rollback
+.PHONY: all format lint test tests help clean build publish publish-test docs docs-live docs-check release-major release-minor release-micro release-rc rollback
 
 # Default target executed when no arguments are given to make.
 all: help
@@ -83,28 +83,28 @@ update:
 ######################
 
 release-major:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create major --changes $${changes//,/ }
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create major --changes "$$changes"
 
 release-minor:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create minor --changes $${changes//,/ }
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create minor --changes "$$changes"
 
-release-patch:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create patch --changes $${changes//,/ }
+release-micro:
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create micro --changes "$$changes"
 
 release-rc:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create minor --pre-release rc --changes $${changes//,/ }
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create micro --pre rc --changes "$$changes"
 
 release-beta:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create patch --pre-release beta --changes $${changes//,/ }
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create micro --pre b --changes "$$changes"
 
 release-alpha:
-	@read -p "Enter changes (comma-separated): " changes; \
-	python scripts/version.py create patch --pre-release alpha --changes $${changes//,/ }
+	@read -p "Enter changes: " changes; \
+	python scripts/version.py create micro --pre a --changes "$$changes"
 
 rollback:
 	python scripts/version.py rollback
@@ -114,11 +114,11 @@ help-release:
 	@echo "Available release commands:"
 	@echo "  make release-major  - Create major release"
 	@echo "  make release-minor  - Create minor release"
-	@echo "  make release-patch  - Create patch release"
+	@echo "  make release-micro  - Create micro release"
 	@echo "  make release-rc     - Create release candidate"
 	@echo "  make release-beta   - Create beta release"
 	@echo "  make release-alpha  - Create alpha release"
-	@echo "  make rollback      - Rollback last release"
+	@echo "  make rollback       - Rollback last release"
 
 
 ######################

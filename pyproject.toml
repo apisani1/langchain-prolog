@@ -41,8 +41,9 @@ pydantic = "^2.0.0"
 
 [tool.semantic_release]
 version_variable = [
-    "src/langchain_prolog/__init__.py:__version__",
     "pyproject.toml:version",
+    "src/langchain_prolog/__version__.py:__version__",
+    "docs/conf.py:release",
 ]
 branch = "main"
 upload_to_pypi = false
@@ -215,15 +216,7 @@ ensure_newline_before_comments = true
 line_length = 119
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 default_section = "FIRSTPARTY"
-extend_skip = [
-    "tests",
-    "scripts",
-    "docs",
-    "__pycache__",
-    ".venv",
-    "build",
-    "dist",
-]
+extend_skip = ["tests", "docs", "__pycache__", ".venv", "build", "dist"]
 
 [tool.doc8]
 max-line-length = 120
