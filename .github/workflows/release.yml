@@ -4,43 +4,46 @@ on:
   push:
     tags: ['v*']
 
-
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
+
   test:
-        runs-on: ubuntu-latest
-        strategy:
-          matrix:
-            python-version: ['3.10', '3.11']
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
 
-        steps:
-        - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Set up Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v5
-          with:
-            python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-        - name: Install SWI-Prolog
-          run: |
-            sudo apt-add-repository ppa:swi-prolog/stable
-            sudo apt-get update
-            sudo apt-get install -y swi-prolog
+      - name: Install SWI-Prolog
+        run: |
+          sudo apt-add-repository ppa:swi-prolog/stable
+          sudo apt-get update
+          sudo apt-get install -y swi-prolog
 
-        - name: Install Poetry
-          run: |
-            curl -sSL https://install.python-poetry.org | python3 -
-            poetry --version
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry --version
 
-        - name: Install dependencies
-          run: |
-            poetry install --with test,dev --no-interaction
-            poetry show
+      - name: Install dependencies
+        run: |
+          poetry install --with test,dev --no-interaction
+          poetry show
 
-        - name: Run tests
-          run: |
-              poetry run python -c "import sys; print(sys.path)"  # Debug Python path
-              poetry run pytest -v  # Add -v for verbose output
+      - name: Run tests
+        run: |
+            poetry run python -c "import sys; print(sys.path)"  # Debug Python path
+            poetry run pytest -v  # Add -v for verbose output
 
   release:
     needs: test
@@ -61,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install poetry python-semantic-release
+          pip install poetry
 
       - name: Determine release type
         id: release-type
@@ -74,22 +77,26 @@ jobs:
             echo "type=draft" >> $GITHUB_OUTPUT
           fi
 
-      - name: Generate changelog
-        id: changelog
+      - name: Extract release notes from tag
+        id: release-notes
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          # Get commits since last release
-          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"* %s" > RELEASE_NOTES.md
-          echo "Generated release notes for version $VERSION"
-          cat RELEASE_NOTES.md
+          echo "Release version: $VERSION"
 
-      - name: Check release notes
-        id: check-notes
-        run: |
+          echo "Extracting message from tag v$VERSION..."
+
+          # Extract the message from the annotated tag
+          git tag -l --format='%(contents)' "v$VERSION" > RELEASE_NOTES.md
+
+          # Check if the tag message was extracted
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "Error: Release notes are empty"
-            exit 1
+            echo "Warning: Could not extract tag message for v$VERSION"
+            echo "Creating simple release notes..."
+            echo "# Release v$VERSION" > RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            echo "See CHANGELOG.md for details." >> RELEASE_NOTES.md
           fi
+
           echo "Release notes content:"
           cat RELEASE_NOTES.md
 

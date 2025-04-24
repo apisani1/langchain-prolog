@@ -57,8 +57,8 @@ class PrereleaseType(Enum):
     RC = "rc"
 
 
-PROJECT_FILE = "pyproject_test.toml"
-CHANGELOG_FILE = "CHANGELOG_TEST.md"
+PROJECT_FILE = "pyproject.toml"
+CHANGELOG_FILE = "CHANGELOG.md"
 BEFORE_LAST_RELEASE = ".before_last_release.pkl"
 
 files_backup: Optional[Iterator[Tuple[str, str]]] = None
@@ -317,7 +317,7 @@ def update_changelog(changelog_path: str, date: str, new_version: Version, chang
 
     print(f"-Updating '{changelog_path}' to {new_version}.")
     try:
-        changelog_entry = f"## v{new_version} - {date}\n\n ### Changes\n"
+        changelog_entry = f"## [{new_version}] - {date}\n\n ### Changes\n"
         changelog_entry += changes + "\n\n"
         changelog_entry = open_in_editor("changelog entry", changelog_entry, "md")
         changelog_file = Path(changelog_path)
