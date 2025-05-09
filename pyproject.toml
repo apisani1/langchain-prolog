@@ -62,32 +62,34 @@ markers = [
 ]
 asyncio_mode = "auto"
 
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.lint]
-optional = true
-
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-flake8 = "^7.1.0"
-mypy = "^1.15.0"
-pylint = "^3.3.0"
-isort = "^6.0.0"
-flake8-pyproject = "^1.2.0"
+# Intentionally empty for project-specific additions
+
+[tool.poetry.group.test]
+optional = true
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.0.0"
+pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
+
+[tool.poetry.group.lint]
+optional = true
 
 [tool.poetry.group.lint.dependencies]
 flake8 = "^7.1.0"
+flake8-pyproject = "^1.2.0"
+pylint = "^3.3.0"
+black = "^25.1.0"
+isort = "^6.0.0"
+
+[tool.poetry.group.typing]
+optional = true
 
 [tool.poetry.group.typing.dependencies]
-mypy = "^1.10"
+mypy = "^1.15"
 
 [tool.poetry.group.docs]
 optional = true
