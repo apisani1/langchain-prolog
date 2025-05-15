@@ -31,6 +31,9 @@ extensions = [
     "sphinx_copybutton",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.autosummary",    # Creates summary tables for modules/classes
+    "sphinx_sitemap",            # Generates sitemap for search engines
+    "sphinx_tabs.tabs",          # For tabbed code examples
 ]
 
 # Configure autodoc
@@ -40,6 +43,7 @@ autodoc_default_options = {
     "special-members": "__init__",
     "undoc-members": True,
     "exclude-members": "__weakref__",
+    "show-inheritance": True,
 }
 
 # Intersphinx configuration for external documentation
@@ -96,15 +100,19 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_theme_options = {
-    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "style_nav_header_background": "#2980B9",
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "style_nav_header_background": "#2980B9",
 }
 
-# Suppress specific warnings
+# Reduce warning noise
+nitpicky = False
 suppress_warnings = [
     "myst.header",
+    "ref.*",  # Suppress all reference warnings
 ]
 
 # Autodoc settings

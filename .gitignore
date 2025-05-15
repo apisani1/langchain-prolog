@@ -1,0 +1,33 @@
+__pycache__/
+.mypy_cache/
+.mypy_cache_test/
+.mypy_cache_diff/
+.ipynb_checkpoints/
+build/
+dist/
+*.egg-info/
+*.log
+.pypirc
+
+# Documentation
+docs/_build/
+
+# VS Code
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Misc
+.DS_Store
+*.pkl

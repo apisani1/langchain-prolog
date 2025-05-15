@@ -30,6 +30,10 @@ install-docs:
 	@echo "Installing documentation dependencies..."
 	@poetry install --with docs
 
+install-all:
+	@echo "Installing all dependencies..."
+	@poetry install --with dev,test,lint,typing,docs
+
 # Update all dependencies
 update:
 	@echo "Updating dependencies..."
@@ -267,6 +271,11 @@ help-test:
 ######################
 
 # Generate documentation
+# Generate API documentation automatically
+docs-api:
+	@echo "Generating API documentation..."
+	@cd docs && poetry run sphinx-apidoc -o api ../src/langchain_prolog -f
+
 docs:
 	@echo "Building documentation..."
 	@cd docs && poetry run make html
@@ -288,11 +297,6 @@ docs-clean:
 	@echo "Cleaning documentation build files..."
 	@cd docs && poetry run make clean
 	@cd docs && poetry run make html
-
-# Generate API documentation automatically
-docs-api:
-	@echo "Generating API documentation..."
-	@cd docs && poetry run sphinx-apidoc -o api ../src/langchain_prolog -f
 
 
 ######################
@@ -418,9 +422,11 @@ help:
 	@echo '  make help-test            - Show help for pytest options'
 	@echo ''
 	@echo 'Documentation:'
+	@echo '  make docs-api             - Build API documentation'
 	@echo '  make docs                 - Build documentation'
 	@echo '  make docs-live            - Start live documentation server'
 	@echo '  make docs-check           - Check documentation quality'
+	@echo '  make docs-clean           - Build documentation from scratch'
 	@echo ''
 	@echo 'Building & Publishing:'
 	@echo '  make clean                - Clean build art@ifacts'
