@@ -16,10 +16,14 @@ from langchain_core.tools import (
     Tool,
 )
 from langchain_core.tools.base import _get_runnable_config_param
-from pydantic import Field
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
 from langchain_prolog import (
     PrologConfig,
+    PrologInput,
     PrologRunnable,
 )
 
@@ -81,19 +85,24 @@ class PrologTool(Tool):
 
         self.prolog = prolog
 
-    def _to_args_and_kwargs(
-        self, tool_input: Union[str, dict], tool_call_id: Optional[str]
-    ) -> tuple[tuple, dict]:
+    def _to_args_and_kwargs(self, tool_input: Union[str, dict], tool_call_id: Optional[str]) -> tuple[tuple, dict]:
         """Handle tool input for function calling."""
         args, kwargs = BaseTool._to_args_and_kwargs(self, tool_input, tool_call_id)  # pylint: disable=protected-access
         args = args if isinstance(args, tuple) else () if args is None else (args,)
-        kwargs = (
-            kwargs if isinstance(kwargs, dict) else {} if kwargs is None else {"__arg1": kwargs}
-        )
+        kwargs = kwargs if isinstance(kwargs, dict) else {} if kwargs is None else {"__arg1": kwargs}
         all_args = list(args) + list(kwargs.values())
         if len(args) != 0 or "__arg1" in kwargs:
             return tuple(all_args), {}
         return (kwargs,), {}
+
+    def run(   # type: ignore[override]
+        self,
+        tool_input: PrologInput,
+        **kwargs: Any,
+    ) -> Any:
+        if isinstance(tool_input, BaseModel):
+            tool_input = tool_input.model_dump()
+        return super().run(tool_input, **kwargs)  # type: ignore
 
     def _run(
         self,

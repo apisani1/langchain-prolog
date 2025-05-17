@@ -12,6 +12,11 @@ from langchain_prolog import (
     PrologValueError,
 )
 
+import importlib
+import langchain_prolog
+
+# Force reload after changes
+importlib.reload(langchain_prolog)
 
 # Get the path to the test directory
 TEST_DIR = Path(__file__).parent / "test_scripts"

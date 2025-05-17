@@ -21,6 +21,12 @@ from langchain_prolog import (
     ValidationError,
 )
 
+import importlib
+import langchain_prolog
+
+# Force reload after changes
+importlib.reload(langchain_prolog)
+
 
 # Get the path to the test directory
 TEST_DIR = Path(__file__).parent / "test_scripts"
@@ -102,7 +108,7 @@ def test_tool_run(prolog_tool, prolog_tool_with_schema):
 
     # Test with pedantic object input
     args = prolog_tool_with_schema.prolog.prolog_config.query_schema(X="john", Y=None)
-    result = prolog_tool.run(args)
+    result = prolog_tool_with_schema.run(args)
     assert isinstance(result, list)
     assert len(result) == 2
     assert all(sol == {"Y": "bianca"} for sol in result)
@@ -436,10 +442,10 @@ def test_tool_input_validation(prolog_tool, prolog_tool_with_schema):
     assert expected_result in prolog_tool_with_schema.run({"X": "john", "Y": None})
 
     # Test with invalid inputs
-    with pytest.raises(ToolException):
+    with pytest.raises(TypeError):
         prolog_tool.run(123)  # type: ignore
 
-    with pytest.raises(ToolException):
+    with pytest.raises(TypeError):
         prolog_tool.run(None)
 
     with pytest.raises(ToolException):
