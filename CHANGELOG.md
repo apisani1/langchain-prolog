@@ -1,4 +1,15 @@
 # Changelog
+## v0.1.1 - 2025-05-17
+
+ ### Changes
+- Overide run definition in Prolog Tool to allow passing a pydantic model
+- Update doc project files
+- Update Makefiles for release management script and other CLI tools
+- Update release workflow to use tag messages for release notes
+- Redesign release management script
+- Transition formatting and linting configuration to pyproject.toml
+
+
 ## [0.1.0.post1] - 2025-03-07
 
 ### Changed
