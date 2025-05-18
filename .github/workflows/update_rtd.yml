@@ -1,0 +1,69 @@
+name: Update ReadTheDocs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update on ReadTheDocs (without v prefix, e.g. 0.1.1)'
+        required: true
+        type: string
+
+jobs:
+  update_rtd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List all versions on ReadTheDocs
+        run: |
+          echo "Listing all versions on ReadTheDocs..."
+          curl -s \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/" | jq
+
+      - name: Create tag if needed
+        run: |
+          TAG="v${{ github.event.inputs.version }}"
+          if ! git tag -l | grep -q "^$TAG$"; then
+            echo "Tag $TAG doesn't exist locally. Creating it..."
+            git tag $TAG
+            git push origin $TAG
+            echo "Tag $TAG created and pushed."
+          else
+            echo "Tag $TAG already exists."
+          fi
+
+      - name: Sync versions
+        run: |
+          echo "Syncing versions with ReadTheDocs..."
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/sync/"
+
+      - name: Wait for sync to complete
+        run: sleep 10
+
+      - name: Active version
+        run: |
+          echo "Activating version ${{ github.event.inputs.version }}..."
+          curl -X PATCH \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"active": true}' \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/${{ github.event.inputs.version }}/"
+
+      - name: Trigger build
+        run: |
+          echo "Triggering build for version ${{ github.event.inputs.version }}..."
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/${{ github.event.inputs.version }}/builds/"
+
+      - name: Check build status
+        run: |
+          echo "View builds at https://readthedocs.org/projects/langchain-prolog/builds/"

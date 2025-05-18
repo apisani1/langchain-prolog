@@ -157,25 +157,32 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
-
       - name: Update ReadTheDocs
         if: steps.release-type.outputs.type == 'release'
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
 
-          # Update main documentation
-          echo "Updating main documentation..."
+          # Trigger a build of the main version
+          echo "Triggering build for default version..."
           curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"branches": ["main"]}' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/
+            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/
 
-          # Create and activate version-specific documentation
-          echo "Creating version-specific documentation: ${VERSION}"
-          curl -X PATCH \
+          # Create the version if it doesn't exist
+          echo "Creating version $VERSION if needed..."
+          curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"active": true}' \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/"
+            -d '{"ref": "'$VERSION'", "active": true, "hidden": false}' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/
+
+          # Trigger a build for the version
+          echo "Triggering build for version $VERSION..."
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref": "'$VERSION'"}' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/
         continue-on-error: true
