@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "langchain-prolog"
-version = "0.1.1.post4"
+version = "0.1.1.post5"
 description = "An integration package connecting Prolog and LangChain"
 authors = ["Antonio Pisani"]
 readme = "README.md"

@@ -9,7 +9,7 @@
 project = "langchain-prolog"
 copyright = "2025, Antonio Pisani"
 author = "Antonio Pisani"
-release = "0.1.1.post4"
+release = "0.1.1.post5"
 
 import os
 import sys
