@@ -156,32 +156,54 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
+
       - name: Update ReadTheDocs
         if: steps.release-type.outputs.type == 'release'
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
+          TAG_NAME="v$VERSION"
 
-          # Trigger a build of the main version
-          echo "Triggering build for default version..."
-          curl -X POST \
+          echo "Using ReadTheDocs API to update version: $VERSION"
+
+          # Step 1: Import the version if it doesn't exist
+          echo "Importing version $VERSION from git tag $TAG_NAME..."
+          import_response=$(curl -s -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"branches": ["main"]}' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/
+            -d '{
+              "identifier": "'$TAG_NAME'",
+              "verbose_name": "'$VERSION'",
+              "active": true
+            }' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/)
 
-          # Create the version if it doesn't exist
-          echo "Creating version $VERSION if needed..."
-          curl -X POST \
+          echo "Import response: $import_response"
+
+          # Step 2: Activate the version (even if it already exists)
+          echo "Activating version $VERSION..."
+          activate_response=$(curl -s -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"ref": "'$VERSION'", "active": true, "hidden": false}' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/
+            -d '{
+              "active": true,
+              "hidden": false
+            }' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/)
 
-          # Trigger a build for the version
+          echo "Activation response: $activate_response"
+
+          # Step 3: Trigger a build for this version
           echo "Triggering build for version $VERSION..."
-          curl -X POST \
+          build_response=$(curl -s -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"ref": "'$VERSION'"}' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/
+            -d '{
+              "project": "langchain-prolog",
+              "version": "'$VERSION'"
+            }' \
+            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/)
+
+          echo "Build response: $build_response"
+
+          echo "ReadTheDocs update complete. Check status at: https://readthedocs.org/projects/langchain-prolog/builds/"
         continue-on-error: true
