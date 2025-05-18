@@ -1,4 +1,10 @@
 # Changelog
+## [0.1.1.post1] - 2025-05-18
+
+ ### Changes
+- Solve version handling issue with RTD workflow
+
+
 ## v0.1.1 - 2025-05-17
 
  ### Changes
