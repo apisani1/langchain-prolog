@@ -172,13 +172,13 @@ jobs:
             ${{ secrets.RTDS_WEBHOOK_URL }}
 
           echo "ReadTheDocs webhook triggered. Check status at: https://readthedocs.org/projects/langchain-prolog/builds/"
-          echo "You may need to manually activate the $VERSION version on ReadTheDocs."
+          echo "You may need to manually activate the $TAG_NAME version on ReadTheDocs."
 
           # Try to activate via API if available
-          echo "Attempting to activate version $VERSION via API..."
+          echo "Attempting to activate version $TAG_NAME via API..."
           curl -s -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"active": true}' \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/" || true
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$TAG_NAME/" || true
         continue-on-error: true
