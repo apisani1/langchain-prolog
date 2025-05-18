@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post6] - 2025-05-18
+
+ ### Changes
+- Correct RTD trigger in release workflow
+
+
+
 ## [0.1.1.post5] - 2025-05-18
 
  ### Changes
