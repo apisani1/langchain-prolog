@@ -1,4 +1,12 @@
 # Changelog
+## [0.1.1.post2] - 2025-05-18
+
+ ### Changes
+- Correct release-type check on release workflow
+- Correct Update ReadTheDocs workflow version prompt
+
+
+
 ## [0.1.1.post1] - 2025-05-18
 
  ### Changes
