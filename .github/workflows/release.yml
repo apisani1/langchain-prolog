@@ -163,47 +163,22 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           TAG_NAME="v$VERSION"
 
-          echo "Using ReadTheDocs API to update version: $VERSION"
+          echo "Using webhook to trigger ReadTheDocs build"
 
-          # Step 1: Import the version if it doesn't exist
-          echo "Importing version $VERSION from git tag $TAG_NAME..."
-          import_response=$(curl -s -X POST \
+          # Use webhook approach (more reliable than API)
+          curl -X POST \
+            -d "branches=main" \
+            -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
+            ${{ secrets.RTDS_WEBHOOK_URL }}
+
+          echo "ReadTheDocs webhook triggered. Check status at: https://readthedocs.org/projects/langchain-prolog/builds/"
+          echo "You may need to manually activate the $VERSION version on ReadTheDocs."
+
+          # Try to activate via API if available
+          echo "Attempting to activate version $VERSION via API..."
+          curl -s -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "identifier": "'$TAG_NAME'",
-              "verbose_name": "'$VERSION'",
-              "active": true
-            }' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/)
-
-          echo "Import response: $import_response"
-
-          # Step 2: Activate the version (even if it already exists)
-          echo "Activating version $VERSION..."
-          activate_response=$(curl -s -X PATCH \
-            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "active": true,
-              "hidden": false
-            }' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/)
-
-          echo "Activation response: $activate_response"
-
-          # Step 3: Trigger a build for this version
-          echo "Triggering build for version $VERSION..."
-          build_response=$(curl -s -X POST \
-            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "project": "langchain-prolog",
-              "version": "'$VERSION'"
-            }' \
-            https://readthedocs.org/api/v3/projects/langchain-prolog/builds/)
-
-          echo "Build response: $build_response"
-
-          echo "ReadTheDocs update complete. Check status at: https://readthedocs.org/projects/langchain-prolog/builds/"
+            -d '{"active": true}' \
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$VERSION/" || true
         continue-on-error: true
