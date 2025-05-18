@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to update on ReadTheDocs (without v prefix, e.g. 0.1.1)'
+        description: 'Version to update on ReadTheDocs'
         required: true
         type: string
 
