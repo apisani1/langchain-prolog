@@ -30,6 +30,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
       - name: Install SWI-Prolog
         run: |
           sudo apt-add-repository ppa:swi-prolog/stable
@@ -64,6 +73,13 @@ jobs:
           poetry run pip install --upgrade pip
           poetry run pip install janus-swi==1.5.2
           poetry install --with docs --verbose
+
+      - name: Check Documentation Quality
+        run: |
+          cd docs
+          poetry run doc8 . || echo "Documentation quality check found issues"
+          poetry run make linkcheck || echo "Link check found broken links"
+        continue-on-error: true
 
       - name: Build Documentation
         run: |
