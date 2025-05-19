@@ -31,9 +31,9 @@ extensions = [
     "sphinx_copybutton",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.autosummary",    # Creates summary tables for modules/classes
-    "sphinx_sitemap",            # Generates sitemap for search engines
-    "sphinx_tabs.tabs",          # For tabbed code examples
+    "sphinx.ext.autosummary",  # Creates summary tables for modules/classes
+    "sphinx_sitemap",  # Generates sitemap for search engines
+    "sphinx_tabs.tabs",  # For tabbed code examples
 ]
 
 # Configure autodoc
