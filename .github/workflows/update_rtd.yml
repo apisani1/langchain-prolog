@@ -42,19 +42,19 @@ jobs:
           curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/sync/"
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/sync/"
 
       - name: Wait for sync to complete
-        run: sleep 10
+        run: sleep 20
 
       - name: Active version
         run: |
-          echo "Activating version ${{ github.event.inputs.version }}..."
+          echo "Activating version v${{ github.event.inputs.version }}"
           curl -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"active": true}' \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/${{ github.event.inputs.version }}/"
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v${{ github.event.inputs.version }}/"
 
       - name: Trigger build
         run: |
@@ -62,7 +62,7 @@ jobs:
           curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/${{ github.event.inputs.version }}/builds/"
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v${{ github.event.inputs.version }}/builds/"
 
       - name: Check build status
         run: |
