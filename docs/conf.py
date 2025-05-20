@@ -115,31 +115,26 @@ suppress_warnings = [
     "ref.*",  # Suppress all reference warnings
 ]
 
-# Autodoc settings
-autodoc_mock_imports = ["janus_swi"]
-autoclass_content = "both"
-autodoc_member_order = "bysource"
-
-from unittest.mock import MagicMock
-
-
 # Configure autodoc to handle imports
+# Autodoc settings
 autodoc_mock_imports = [
     "janus_swi",
     "langchain_prolog._prolog_init.initialize_macos",
     "langchain_prolog._prolog_init.initialize_linux",
     "langchain_prolog._prolog_init.initialize_windows",
 ]
-
+autoclass_content = "both"
+autodoc_member_order = "bysource"
 
 # For more complex mocking
+from unittest.mock import MagicMock
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
 
-MOCK_MODULES = MOCK_MODULES = [
+MOCK_MODULES = [
     "janus_swi",
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)

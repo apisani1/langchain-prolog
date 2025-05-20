@@ -347,37 +347,37 @@ validate-build: build
 release-major:
 	@echo "Creating major release..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create major --changes "$$changes"
+	python scripts/release.py create major --changes "$$changes"
 
 release-minor:
 	@echo "Creating minor release..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create minor --changes "$$changes"
+	python scripts/release.py create minor --changes "$$changes"
 
 release-micro:
 	@echo "Creating micro release..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create micro --changes "$$changes"
+	python scripts/release.py create micro --changes "$$changes"
 
 release-rc:
 	@echo "Creating release candidate..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create micro --pre rc --changes "$$changes"
+	python scripts/release.py create micro --pre rc --changes "$$changes"
 
 release-beta:
 	@echo "Creating beta release..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create micro --pre b --changes "$$changes"
+	python scripts/release.py create micro --pre b --changes "$$changes"
 
 release-alpha:
 	@echo "Creating alpha release..."
 	@read -p "Enter changes: " changes; \
-	python scripts/version.py create micro --pre a --changes "$$changes"
+	python scripts/release.py create micro --pre a --changes "$$changes"
 
 # Rollback release
 rollback:
 	@echo "Rolling back last release..."
-	python scripts/version.py rollback
+	python scripts/release.py rollback
 
 # Helper target to show available commands
 help-release:
