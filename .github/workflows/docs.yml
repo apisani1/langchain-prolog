@@ -116,11 +116,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const artifactUrl = `https://github.com/${{ github.context.repo.owner }}/${{ github.context.repo.repo }}/actions/runs/${{ github.context.runId }}`;
             const body = `📚 Documentation preview is available! [Download the artifact](${artifactUrl}) and view locally.`;
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              issue_number: ${{ github.context.issue.number }},
+              owner: ${{ github.context.repo.owner  }},
+              repo: $${{ github.context.repo.repo }},
               body: body
             });
