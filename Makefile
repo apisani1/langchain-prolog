@@ -49,6 +49,21 @@ lock:
 	@echo "Locking dependencies..."
 	@poetry lock
 
+# Create a new Jupyter kernel for the current project
+kernel:
+	@echo "Installing Jupyter kernel..."
+	@$(eval PYTHON_VERSION := $(shell poetry run python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"))
+	@$(eval PROJECT_NAME := $(shell poetry version | cut -d' ' -f1))
+	@poetry run python -m ipykernel install --user \
+		--name=$(PROJECT_NAME) \
+		--display-name="Python $(PYTHON_VERSION) ($(PROJECT_NAME))"
+
+# Remove the Jupyter kernel for the current project
+remove-kernel:
+	@echo "Removing Jupyter kernel..."
+	@$(eval PROJECT_NAME := $(shell poetry version | cut -d' ' -f1))
+	@poetry run jupyter kernelspec remove $(PROJECT_NAME) -y
+
 # Export requirements.txt files
 requirements:
 	@echo "Exporting requirements.txt..."
