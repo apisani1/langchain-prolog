@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install SWI-Prolog
+        run: |
+          sudo apt-add-repository ppa:swi-prolog/stable
+          sudo apt-get update
+          sudo apt-get install -y swi-prolog
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry --version
+
+      - name: Install dependencies
+        run: |
+          poetry install --with test,dev --no-interaction
+          poetry show
+
+      - name: Run tests
+        run: |
+            poetry run python -c "import sys; print(sys.path)"  # Debug Python path
+            poetry run pytest -v  # Add -v for verbose output
