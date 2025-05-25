@@ -35,10 +35,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          poetry install --with test,dev --no-interaction
+          poetry install --with test,dev,lint,typing --no-interaction
           poetry show
+
+      - name: Check code formatting with black
+        run: |
+          poetry run black --check --diff ./src/langchain_prolog/
+
+      - name: Check import sorting with isort
+        run: |
+          poetry run isort --check-only --diff ./src/langchain_prolog/
+
+      - name: Run type checking with mypy
+        run: |
+          poetry run mypy ./src/langchain_prolog/ --cache-dir .mypy_cache
+
+      - name: Run linting with flake8
+        run: |
+          poetry run flake8 ./src/langchain_prolog/
 
       - name: Run tests
         run: |
-            poetry run python -c "import sys; print(sys.path)"  # Debug Python path
-            poetry run pytest -v  # Add -v for verbose output
+            poetry run pytest -v

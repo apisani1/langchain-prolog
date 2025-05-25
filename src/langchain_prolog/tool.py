@@ -95,7 +95,7 @@ class PrologTool(Tool):
             return tuple(all_args), {}
         return (kwargs,), {}
 
-    def run(   # type: ignore[override]
+    def run(  # type: ignore[override]
         self,
         tool_input: PrologInput,
         **kwargs: Any,
