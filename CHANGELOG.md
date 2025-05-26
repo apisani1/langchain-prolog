@@ -1,4 +1,21 @@
 # Changelog
+## [0.1.1.post7] - 2025-05-26
+
+ ### Changes
+- Replace Makefile with run.sh bash script and migrate github workflows to use it for a single source of truth
+- Add linting and formating to tests workflow
+- Separate test workflow from release
+- Add makefile actions to create and remove jupiter notebook kernels
+- Correct mock settings for documentation
+- Correct GitHub PR request endpoint
+- Update RTD endpoint for sync versions
+- Delete annoucement
+- Reformat conf.py to test documentation workflow
+- Add documentation checks
+- Activate TestPyPI for all releases
+- Add PR comment in docs workflow
+
+
 ## [0.1.1.post6] - 2025-05-18
 
  ### Changes
