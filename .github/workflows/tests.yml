@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  test:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,26 +34,19 @@ jobs:
           poetry --version
 
       - name: Install dependencies
-        run: |
-          poetry install --with test,dev,lint,typing --no-interaction
-          poetry show
+        run: ./run.sh install:all
 
       - name: Check code formatting with black
-        run: |
-          poetry run black --check --diff ./src/langchain_prolog/
+        run: ./run.sh format:check:black
 
       - name: Check import sorting with isort
-        run: |
-          poetry run isort --check-only --diff ./src/langchain_prolog/
+        run: ./run.sh format:check:isort
 
       - name: Run type checking with mypy
-        run: |
-          poetry run mypy ./src/langchain_prolog/ --cache-dir .mypy_cache
+        run: ./run.sh lint:mypy
 
       - name: Run linting with flake8
-        run: |
-          poetry run flake8 ./src/langchain_prolog/
+        run: ./run.sh lint:flake8
 
       - name: Run tests
-        run: |
-            poetry run pytest -v
+        run: ./run.sh tests
