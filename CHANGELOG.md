@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post8] - 2025-05-26
+
+ ### Changes
+- Add poetry cache to tests and release workflows
+
+
+
 ## [0.1.1.post7] - 2025-05-26
 
  ### Changes
