@@ -29,10 +29,23 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
 
       - name: Determine release type
         id: release-type

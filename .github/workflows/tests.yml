@@ -21,6 +21,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
 
       - name: Install SWI-Prolog
         run: |
@@ -32,7 +39,10 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
-
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
       - name: Install dependencies
         run: ./run.sh install:all
 
