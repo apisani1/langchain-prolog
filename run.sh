@@ -280,7 +280,8 @@ function tests {
 function tests:cov {
     echo "Running tests with coverage..."
     TEST_FILE="${1:-$(get:python:files:tests)}"
-    poetry run pytest "$TEST_FILE" --cov=langchain_prolog --cov-report=term --cov-report=html
+    shift || true
+    poetry run pytest "$TEST_FILE" --cov=langchain_prolog --cov-report=term "$@"
 }
 
 # Run tests in verbose mode
@@ -334,21 +335,21 @@ function help:test {
     echo '  -x, --exitfirst         Stop on first failure'
     echo '  --pdb                   Start the Python debugger on errors'
     echo '  -m MARK                 Only run tests with specific markers'
-    echo '  -k EXPRESSION           Only run tests that match expression'
+    echo '  -k EXPRESSION           Only run test files that match expression'
     echo '  --log-cli-level=INFO    Show log messages in the console'
     echo '  --cov=PACKAGE           Measure code coverage for a package'
-    echo '  --no-cov                Disable coverage measurement'
+    echo '  --cov-report=html       Generate HTML coverage report'
     echo ''
     echo 'Examples:'
     echo '  ./run.sh tests tests/ -v'
-    echo '  ./run.sh tests:pattern "not slow"'
+    echo '  ./run.sh tests:pattern "test_async"'
     echo '  ./run.sh tests:file tests/test_example.py -v'
-    echo '  ./run.sh tests:cov'
+    echo '  ./run.sh tests:cov tests/unit/ --cov-report=html -v'
     echo ''
     echo 'Specialized test functions:'
     echo '  tests:verbose            Run tests with verbose output'
     echo '  tests:cov                Run tests with coverage report'
-    echo '  tests:pattern <pattern>  Run tests matching pattern'
+    echo '  tests:pattern <pattern>  Run test files matching pattern'
     echo '  tests:file <file>        Run tests in specific file'
 }
 
