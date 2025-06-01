@@ -397,7 +397,7 @@ function docs:clean {
 # Clean build artifacts
 function clean {
     echo "Cleaning build artifacts..."
-    rm -rf dist/ build/ *.egg-info/ .pytest_cache .mypy_cache* .coverage htmlcov/ docs/_build/
+    rm -rf dist/ build/ *.egg-info/ .pytest_cache .mypy_cache* .coverage coverage.xml htmlcov/ docs/_build/
 
     # Clean cache directories safely (avoid virtual environments)
     find . -type d -name "__pycache__" -not -path "*env/*" -exec rm -rf {} + 2>/dev/null || true
