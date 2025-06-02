@@ -51,7 +51,37 @@ function update {
 # Create a new virtual environment
 function venv {
     echo "Creating virtual environment..."
-    poetry shell
+
+    # Manually deactivate conda environment if active
+    if [ -n "$CONDA_DEFAULT_ENV" ]; then
+        echo "Deactivating conda environment: $CONDA_DEFAULT_ENV"
+        # Clean all conda-related variables
+        unset CONDA_DEFAULT_ENV CONDA_PREFIX CONDA_PYTHON_EXE CONDA_PROMPT_MODIFIER
+        # Restore original PATH (remove conda paths)
+        if [ -n "$_CONDA_OLD_PATH" ]; then
+            export PATH="$_CONDA_OLD_PATH"
+        fi
+    fi
+
+    # Manually deactivate regular virtual environment if active
+    if [ -n "$VIRTUAL_ENV" ]; then
+        echo "Deactivating virtual environment: $(basename $VIRTUAL_ENV)"
+        # Clean all venv-related variables
+        unset VIRTUAL_ENV PYTHONHOME
+        # Restore original PATH (remove venv paths)
+        if [ -n "$_OLD_VIRTUAL_PATH" ]; then
+            export PATH="$_OLD_VIRTUAL_PATH"
+        else
+            # Fallback: try to remove common venv path patterns
+            export PATH=$(echo "$PATH" | sed -E 's|[^:]*\.venv/bin:||g' | sed -E 's|:[^:]*\.venv/bin||g')
+        fi
+    fi
+
+    # Ensure clean environment for Poetry (comprehensive cleanup)
+    unset VIRTUAL_ENV POETRY_ACTIVE PYTHONHOME
+
+    # Force zsh explicitly
+    SHELL=/bin/zsh exec poetry shell
 }
 
 # Lock dependencies without installing them
