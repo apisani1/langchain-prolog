@@ -4,10 +4,10 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.10"
-  apt_packages:
-    - swi-prolog
 
   commands:
+    - apt-get update || echo "apt-get update failed"
+    - apt-get install -y swi-prolog || echo "swi-prolog install failed"
     - pip install poetry
     - poetry config virtualenvs.create false
     - poetry install --with docs --no-interaction
