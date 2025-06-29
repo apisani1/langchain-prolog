@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post14] - 2025-06-29
+
+ ### Changes
+- Manually install core depandancies to avoid installing janus_swi
+
+
+
 ## [0.1.1.post13] - 2025-06-29
 
  ### Changes
