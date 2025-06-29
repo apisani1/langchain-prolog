@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post11] - 2025-06-29
+
+ ### Changes
+- Use apt_packages to install prolog in RTD build workflow
+
+
+
 ## [0.1.1.post10] - 2025-06-29
 
  ### Changes
