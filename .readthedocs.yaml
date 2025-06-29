@@ -4,14 +4,11 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.10"
-
   commands:
-    - wget https://www.swi-prolog.org/download/stable/bin/swipl-8.4.3-1.x86_64.linux -O swipl
-    - chmod +x swipl
-    - mkdir -p $HOME/bin
-    - mv swipl $HOME/bin/
-    - export PATH=$HOME/bin:$PATH
     - pip install poetry
     - poetry config virtualenvs.create false
-    - poetry install --with docs --no-interaction
+    - poetry install --only docs --no-interaction
+    # Install safe dependencies manually (needed for imports) but no janus_swi
+    - pip install pydantic
+    - pip install --no-deps -e .  # Install your package without dependencies
     - python -m sphinx -T -b html -d _build/doctrees -D language=en docs $READTHEDOCS_OUTPUT/html
