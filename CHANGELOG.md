@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post16] - 2025-06-29
+
+ ### Changes
+- Add langchain to RTD workflow to solve API doc generation issue
+
+
+
 ## [0.1.1.post15] - 2025-06-29
 
  ### Changes
