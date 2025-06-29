@@ -10,5 +10,6 @@ build:
     - poetry install --only docs --no-interaction
     # Install safe dependencies manually (needed for imports) but no janus_swi
     - pip install pydantic
-    - pip install --no-deps -e .  # Install your package without dependencies
+    # Install your package without dependencies
+    - pip install --no-deps -e .
     - python -m sphinx -T -b html -d _build/doctrees -D language=en docs $READTHEDOCS_OUTPUT/html
