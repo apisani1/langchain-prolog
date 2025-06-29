@@ -1,4 +1,11 @@
 # Changelog
+## [0.1.1.post12] - 2025-06-29
+
+ ### Changes
+- Install prolog directly in RTD build workflow
+
+
+
 ## [0.1.1.post11] - 2025-06-29
 
  ### Changes
