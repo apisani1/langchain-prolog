@@ -1,4 +1,16 @@
 # Changelog
+## [0.1.1.post9] - 2025-06-29
+
+ ### Changes
+- Use poetry in read the docs build workflow
+- Add ignore codes for pylint and flake8
+- Deactivate conda and/or regular virtual environments when activating poetry local environment via run.sh venv
+- Add test coverage to .gitignore and run.sh clean
+- Add optional parameters to run.sh tests:cov test with coverage report
+- Rewrite Makefile using run.sh functions
+
+
+
 ## [0.1.1.post8] - 2025-05-26
 
  ### Changes
