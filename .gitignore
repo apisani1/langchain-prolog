@@ -35,6 +35,9 @@ coverage.xml
 !.vscode/extensions.json
 *.code-workspace
 
+# Claude
+.claude/*
+
 # Environment
 .venv
 env/
