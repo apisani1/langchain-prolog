@@ -5,20 +5,21 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
-      - '**/*.rst'
-      - '**/*.md'
-      - 'pyproject.toml'
-      - '.readthedocs.yaml'
+      - "docs/**"
+      - "**/*.rst"
+      - "**/*.md"
+      - "pyproject.toml"
+      - ".readthedocs.yaml"
   pull_request:
     branches:
       - main
     paths:
-      - 'docs/**'
-      - '**/*.rst'
-      - '**/*.md'
-      - 'pyproject.toml'
-      - '.readthedocs.yaml'
+      - "docs/**"
+      - "**/*.rst"
+      - "**/*.md"
+      - "pyproject.toml"
+      - ".readthedocs.yaml"
+
 jobs:
   docs:
     runs-on: ubuntu-latest
@@ -28,14 +29,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Cache Poetry dependencies
         uses: actions/cache@v4
         with:
           path: .venv
-
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-poetry-v2-${{ hashFiles('**/poetry.lock', '**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-poetry-
 
@@ -116,11 +116,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const artifactUrl = `https://github.com/${{ github.context.repo.owner }}/${{ github.context.repo.repo }}/actions/runs/${{ github.context.runId }}`;
-            const body = `📚 Documentation preview is available! [Download the artifact](${artifactUrl}) and view locally.`;
+            const artifactUrl = 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+            const body = '📚 Documentation preview is available! [Download the artifact](' + artifactUrl + ') and view locally.';
             github.rest.issues.createComment({
-              issue_number: ${{ github.context.issue.number }},
-              owner: ${{ github.context.repo.owner  }},
-              repo: $${{ github.context.repo.repo }},
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               body: body
             });

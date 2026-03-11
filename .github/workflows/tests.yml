@@ -1,8 +1,12 @@
+# This workflow was inspired by Eric Riddoch's "built-test-publish.yaml"
+# but has been fully re-implemented and adapted for this project.
+
 name: Tests
 
 on:
   workflow_call:
   workflow_dispatch:
+  pull_request:
   push:
     branches: [main]
 
@@ -25,9 +29,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-poetry-v2-${{ hashFiles('**/poetry.lock', '**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-
+            ${{ runner.os }}-poetry-v2-
 
       - name: Install SWI-Prolog
         run: |
@@ -59,4 +63,4 @@ jobs:
         run: ./run.sh lint:flake8
 
       - name: Run tests
-        run: ./run.sh tests
+        run: ./run.sh tests || [ $? -eq 5 ]

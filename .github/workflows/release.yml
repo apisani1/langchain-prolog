@@ -24,6 +24,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify tag is on main branch
+        run: |
+          if ! git branch -r --contains ${{ github.ref_name }} | grep -q 'origin/main'; then
+            echo "::error::Tag ${{ github.ref_name }} is not on the main branch. Releases must be tagged from main."
+            exit 1
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -33,9 +40,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-poetry-v2-${{ hashFiles('**/poetry.lock', '**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-
+            ${{ runner.os }}-poetry-v2-
 
       - name: Install Poetry
         run: |
@@ -47,33 +54,48 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Determine release type
-        id: release-type
+      - name: Determine release type and latest status
+        id: release-info
         run: |
-          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(\.post[0-9]+)?$ ]]; then
-            echo "type=release" >> $GITHUB_OUTPUT
-          elif [[ ${{ github.ref }} =~ ^refs/tags/v.*-(alpha|beta|rc) ]]; then
-            echo "type=prerelease" >> $GITHUB_OUTPUT
+          TAG_NAME=${{ github.ref_name }}
+          VERSION=${TAG_NAME#v}
+
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Determine if this should be marked as latest
+          # Latest = stable releases (x.y.z) and post releases (x.y.z.postN)
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.(post)[0-9]+)?$ ]]; then
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+            echo "release_type=release" >> $GITHUB_OUTPUT
+            echo "Stable release - will be marked as latest"
+          elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+[-\.]?(a|alpha|b|beta|rc)[0-9]*$ ]]; then
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+            echo "release_type=prerelease" >> $GITHUB_OUTPUT
+            echo "Pre-release - will NOT be marked as latest"
+          elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+[-\.]?(dev)[0-9]*$ ]]; then
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+            echo "release_type=dev" >> $GITHUB_OUTPUT
+            echo "Development release - will NOT be marked as latest"
           else
-            echo "type=draft" >> $GITHUB_OUTPUT
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+            echo "release_type=draft" >> $GITHUB_OUTPUT
+            echo "Draft release - will NOT be marked as latest"
           fi
 
       - name: Extract release notes from tag
         id: release-notes
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "Release version: $VERSION"
+          VERSION=${{ steps.release-info.outputs.version }}
+          TAG_NAME=${{ steps.release-info.outputs.tag_name }}
 
-          echo "Extracting message from tag v$VERSION..."
+          echo "Extracting message from tag $TAG_NAME..."
+          git tag -l --format='%(contents)' "$TAG_NAME" > RELEASE_NOTES.md
 
-          # Extract the message from the annotated tag
-          git tag -l --format='%(contents)' "v$VERSION" > RELEASE_NOTES.md
-
-          # Check if the tag message was extracted
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "Warning: Could not extract tag message for v$VERSION"
+            echo "Warning: Could not extract tag message for $TAG_NAME"
             echo "Creating simple release notes..."
-            echo "# Release v$VERSION" > RELEASE_NOTES.md
+            echo "# Release $TAG_NAME" > RELEASE_NOTES.md
             echo "" >> RELEASE_NOTES.md
             echo "See CHANGELOG.md for details." >> RELEASE_NOTES.md
           fi
@@ -84,10 +106,11 @@ jobs:
       - name: Build package
         run: ./run.sh build
 
+      # Always test on TestPyPI first
       - name: Test PyPI release
         env:
-          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
-        run: ./run.sh publish:test
+          TEST_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: ./run.sh publish:test:strict
 
       - name: Test installation from TestPyPI
         run: |
@@ -120,30 +143,56 @@ jobs:
           python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           body_path: RELEASE_NOTES.md
-          draft: ${{ steps.release-type.outputs.type == 'draft' }}
-          prerelease: ${{ steps.release-type.outputs.type == 'prerelease' }}
+          # Key improvement: Control latest tag assignment
+          make_latest: ${{ steps.release-info.outputs.is_latest }}
+          prerelease: ${{ steps.release-info.outputs.release_type == 'prerelease' || steps.release-info.outputs.release_type == 'dev' }}
+          draft: ${{ steps.release-info.outputs.release_type == 'draft' }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Only publish stable releases to PyPI
       - name: Publish to PyPI
-        if: steps.release-type.outputs.type == 'release'
+        if: steps.release-info.outputs.release_type == 'release'
         env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: ./run.sh publish
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: ./run.sh publish:strict
 
+      # Update ReadTheDocs for all tagged versions
+      # Note: Set RTD default version to "stable" in project settings for best UX
       - name: Update ReadTheDocs
-        if: steps.release-type.outputs.type == 'release'
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          TAG_NAME="v$VERSION"
-
+          TAG_NAME=${{ steps.release-info.outputs.tag_name }}
           echo "Activating version $TAG_NAME via API..."
-          curl -s -X PATCH \
-            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"active": true}' \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$TAG_NAME/" || true
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d '{"active": true}' \
+              "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$TAG_NAME/")
+            if [ "$RESPONSE" = "204" ]; then
+              echo "Successfully activated version $TAG_NAME"
+              break
+            fi
+            echo "Attempt $i: RTD returned HTTP $RESPONSE, retrying in 15s..."
+            sleep 15
+          done
+          if [ "$RESPONSE" != "204" ]; then
+            echo "Warning: Failed to activate $TAG_NAME after 5 attempts (last HTTP $RESPONSE)"
+          fi
         continue-on-error: true
+
+      - name: Release Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: ${{ steps.release-info.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Latest**: ${{ steps.release-info.outputs.is_latest }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **ReadTheDocs**: Updated" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.release-info.outputs.release_type }}" == "release" ]]; then
+            echo "- **PyPI**: Published" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **PyPI**: Skipped (not a stable release)" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,8 +1,22 @@
 #!/bin/bash
 
+######################
+# This script was inspired by automation patterns from
+# phitoduck/python-course-cookiecutter-v2, but is an independent implementation.
+######################
+
 set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# Ensure 'python' resolves to Python 3 (Poetry 2.x requires it).
+# On some systems Python 2.7 takes precedence on PATH.
+if ! python --version 2>&1 | grep -q "^Python 3"; then
+    _TMPBIN=$(mktemp -d)
+    ln -sf "$(which python3)" "$_TMPBIN/python"
+    export PATH="$_TMPBIN:$PATH"
+    trap "rm -rf '$_TMPBIN'" EXIT
+fi
 
 ######################
 # ENVIRONMENT
@@ -55,17 +69,18 @@ function venv {
     # Manually deactivate conda environment if active
     if [ -n "$CONDA_DEFAULT_ENV" ]; then
         echo "Deactivating conda environment: $CONDA_DEFAULT_ENV"
-        # Clean all conda-related variables
-        unset CONDA_DEFAULT_ENV CONDA_PREFIX CONDA_PYTHON_EXE CONDA_PROMPT_MODIFIER
-        # Restore original PATH (remove conda paths)
-        if [ -n "$_CONDA_OLD_PATH" ]; then
-            export PATH="$_CONDA_OLD_PATH"
+        # Remove conda environment bin directory from PATH (must happen before unsetting CONDA_PREFIX)
+        if [ -n "$CONDA_PREFIX" ]; then
+            PATH=$(echo "$PATH" | sed "s|${CONDA_PREFIX}/bin:||g; s|:${CONDA_PREFIX}/bin||g; s|^${CONDA_PREFIX}/bin$||g")
+            export PATH
         fi
+        # Clean all conda-related variables
+        unset CONDA_DEFAULT_ENV CONDA_PREFIX CONDA_PYTHON_EXE CONDA_PROMPT_MODIFIER CONDA_SHLVL
     fi
 
     # Manually deactivate regular virtual environment if active
     if [ -n "$VIRTUAL_ENV" ]; then
-        echo "Deactivating virtual environment: $(basename $VIRTUAL_ENV)"
+        echo "Deactivating virtual environment: $(basename "$VIRTUAL_ENV")"
         # Clean all venv-related variables
         unset VIRTUAL_ENV PYTHONHOME
         # Restore original PATH (remove venv paths)
@@ -82,6 +97,12 @@ function venv {
 
     # Force zsh explicitly
     SHELL=/bin/zsh exec poetry shell
+}
+
+function venv:clean {
+    echo "Recreating virtual environment..."
+    rm -rf .venv
+    venv
 }
 
 # Lock dependencies without installing them
@@ -129,7 +150,7 @@ function get:python:files {
 }
 
 function get:python:files:diff {
-    git diff --name-only --diff-filter=d main | grep -E '\.py$|\.ipynb$' || echo ""
+    git diff --name-only --diff-filter=d HEAD -- src/ tests/ | grep -E '\.py$|\.ipynb$' || echo ""
 }
 
 function get:python:files:tests {
@@ -182,6 +203,10 @@ function lint {
 # Run all linters on changed files
 function lint:diff {
     PYTHON_FILES=$(get:python:files:diff)
+    if [ -z "$PYTHON_FILES" ]; then
+        echo "No changed Python files to lint."
+        return 0
+    fi
     echo "Running linters on changed files..."
     lint:mypy "$PYTHON_FILES" ".mypy_cache_diff"
     lint:flake8 "$PYTHON_FILES"
@@ -259,6 +284,10 @@ function format:check {
 # Run formatters on changed files
 function format:diff {
     PYTHON_FILES=$(get:python:files:diff)
+    if [ -z "$PYTHON_FILES" ]; then
+        echo "No changed Python files to format."
+        return 0
+    fi
     echo "Running formatters on changed files..."
     format:black "$PYTHON_FILES"
     format:isort "$PYTHON_FILES"
@@ -275,6 +304,7 @@ function format:tests {
 # Combined check
 function check {
     # Note: This applies formatting (for local development)
+    install:all
     format
     lint
     tests
@@ -416,8 +446,7 @@ function docs:check {
 # Clean and rebuild documentation
 function docs:clean {
     echo "Cleaning documentation build files..."
-    cd docs && poetry run make clean
-    cd docs && poetry run make html
+    cd docs && poetry run make clean && poetry run make html
 }
 
 ######################
@@ -434,16 +463,46 @@ function clean {
     find . -type f -name "*.pyc" -not -path "*env/*" -exec rm {} + 2>/dev/null || true
 }
 
-# export the contents of .env as environment variables
-function try-load-dotenv {
-    if [ ! -f "$THIS_DIR/.env" ]; then
-        echo "no .env file found"
-        return 1
+################################################################################
+# config_get
+#
+# Lookup a configuration value using the following precedence:
+#   1. .env file (project-local)
+#   2. Environment variable
+#
+# Returns:
+#   - value on stdout
+#   - non-zero exit code if not found
+################################################################################
+config_get() {
+    local key="$1"
+    local file="$THIS_DIR/.env"
+    local value
+
+    # 1. Check .env first (project-first policy)
+    if [[ -f "$file" ]]; then
+        value="$(
+            sed -n \
+                -e "s/^${key}=[\"']\{0,1\}\(.*\)[\"']\{0,1\}$/\1/p" \
+                "$file"
+        )"
+
+        # If key is defined in .env (even if empty), return it
+        if [[ -n "$value" || $(grep -q "^${key}=" "$file"; echo $?) -eq 0 ]]; then
+            printf '%s\n' "$value"
+            return 0
+        fi
     fi
 
-    while read -r line; do
-        export "$line"
-    done < <(grep -v '^#' "$THIS_DIR/.env" | grep -v '^$')
+    # 2. Fallback to environment
+    value="${!key:-}"
+    if [[ -n "$value" ]]; then
+        printf '%s\n' "$value"
+        return 0
+    fi
+
+    # 3. Not found
+    return 1
 }
 
 # Build package
@@ -453,19 +512,71 @@ function build {
     poetry build
 }
 
-# Publish to TestPyPI
+# Publish to TestPyPI, non strictly requiring token
 function publish:test {
     echo "Publishing to TestPyPI..."
-    try-load-dotenv || true  # Load .env file if it exists
+
+    local token
+    token="$(config_get TEST_PYPI_TOKEN)" || true
+
     poetry config repositories.testpypi https://test.pypi.org/legacy/
-    poetry publish -r testpypi
+
+    if [[ -n "$token" ]]; then
+        POETRY_PYPI_TOKEN_TESTPYPI="$token" poetry publish -r testpypi
+    else
+        poetry publish -r testpypi
+    fi
 }
 
-# Publish to PyPI
+# Publish to TestPyPI, strictly requiring token
+function publish:test:strict {
+    echo "Publishing to TestPyPI (strict mode)..."
+
+    local token
+    token="$(config_get TEST_PYPI_TOKEN)" || {
+        echo "Error: TEST_PYPI_TOKEN not found in environment or .env"
+        return 1
+    }
+
+    [[ -n "$token" ]] || {
+        echo "Error: TEST_PYPI_TOKEN is empty"
+        return 1
+    }
+
+    poetry config repositories.testpypi https://test.pypi.org/legacy/
+    POETRY_PYPI_TOKEN_TESTPYPI="$token" poetry publish -r testpypi
+}
+
+# Publish to PyPI, non strictly requiring token
 function publish {
     echo "Publishing to PyPI..."
-    try-load-dotenv || true  # Load .env file if it exists
-    poetry publish
+
+    local token
+    token="$(config_get PYPI_TOKEN)" || true
+
+    if [[ -n "$token" ]]; then
+        POETRY_PYPI_TOKEN_PYPI="$token" poetry publish
+    else
+        poetry publish
+    fi
+}
+
+# Publish to PyPI, strictly requiring token
+function publish:strict {
+    echo "Publishing to PyPI (strict mode)..."
+
+    local token
+    token="$(config_get PYPI_TOKEN)" || {
+        echo "Error: PYPI_TOKEN not found in environment or .env"
+        return 1
+    }
+
+    [[ -n "$token" ]] || {
+        echo "Error: PYPI_TOKEN is empty"
+        return 1
+    }
+
+    POETRY_PYPI_TOKEN_PYPI="$token" poetry publish
 }
 
 # Validate that package builds correctly
@@ -482,11 +593,11 @@ function validate:build {
 
 # Helper function to get multi-line changes input
 function get:changes {
-    echo "Enter changes (empty line to finish):"
+    echo "Enter changes (empty line to finish):" >&2
     local changes=""
     while IFS= read -r line; do
         [[ -z "$line" ]] && break
-        changes="${changes}${line}"$'\n'
+        changes="${changes}- ${line}"$'\n'
     done
     echo "$changes"
 }
@@ -495,43 +606,97 @@ function get:changes {
 function release:major {
     echo "Creating major release..."
     changes=$(get:changes)
-    python scripts/release.py create major --changes "$changes"
+    python3 scripts/release.py create major --changes "$changes"
 }
 
 function release:minor {
     echo "Creating minor release..."
     changes=$(get:changes)
-    python scripts/release.py create minor --changes "$changes"
+    python3 scripts/release.py create minor --changes "$changes"
 }
 
 function release:micro {
     echo "Creating micro release..."
     changes=$(get:changes)
-    python scripts/release.py create micro --changes "$changes"
+    python3 scripts/release.py create micro --changes "$changes"
 }
 
 function release:rc {
     echo "Creating release candidate..."
     changes=$(get:changes)
-    python scripts/release.py create micro --pre rc --changes "$changes"
+    python3 scripts/release.py create micro --pre rc --changes "$changes"
 }
 
 function release:beta {
     echo "Creating beta release..."
     changes=$(get:changes)
-    python scripts/release.py create micro --pre b --changes "$changes"
+    python3 scripts/release.py create micro --pre b --changes "$changes"
 }
 
 function release:alpha {
     echo "Creating alpha release..."
     changes=$(get:changes)
-    python scripts/release.py create micro --pre a --changes "$changes"
+    python3 scripts/release.py create micro --pre a --changes "$changes"
+}
+
+function release:major:a {
+    echo "Creating major alpha release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create major --pre a --changes "$changes"
+}
+
+function release:major:b {
+    echo "Creating major beta release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create major --pre b --changes "$changes"
+}
+
+function release:major:rc {
+    echo "Creating major release candidate..."
+    changes=$(get:changes)
+    python3 scripts/release.py create major --pre rc --changes "$changes"
+}
+
+function release:minor:a {
+    echo "Creating minor alpha release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create minor --pre a --changes "$changes"
+}
+
+function release:minor:b {
+    echo "Creating minor beta release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create minor --pre b --changes "$changes"
+}
+
+function release:minor:rc {
+    echo "Creating minor release candidate..."
+    changes=$(get:changes)
+    python3 scripts/release.py create minor --pre rc --changes "$changes"
+}
+
+function release:micro:a {
+    echo "Creating micro alpha release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create micro --pre a --changes "$changes"
+}
+
+function release:micro:b {
+    echo "Creating micro beta release..."
+    changes=$(get:changes)
+    python3 scripts/release.py create micro --pre b --changes "$changes"
+}
+
+function release:micro:rc {
+    echo "Creating micro release candidate..."
+    changes=$(get:changes)
+    python3 scripts/release.py create micro --pre rc --changes "$changes"
 }
 
 # Rollback release
 function rollback {
     echo "Rolling back last release..."
-    python scripts/release.py rollback
+    python3 scripts/release.py rollback
 }
 
 # Helper function to show available release commands
@@ -543,6 +708,15 @@ function help:release {
     echo "  release:rc      - Create release candidate"
     echo "  release:beta    - Create beta release"
     echo "  release:alpha   - Create alpha release"
+    echo "  release:major:a - Create major alpha release"
+    echo "  release:major:b - Create major beta release"
+    echo "  release:major:rc- Create major release candidate"
+    echo "  release:minor:a - Create minor alpha release"
+    echo "  release:minor:b - Create minor beta release"
+    echo "  release:minor:rc- Create minor release candidate"
+    echo "  release:micro:a - Create micro alpha release"
+    echo "  release:micro:b - Create micro beta release"
+    echo "  release:micro:rc- Create micro release candidate"
     echo "  rollback        - Rollback last release"
 }
 
@@ -565,6 +739,7 @@ function help {
     echo "  install:all          - Install all dependencies"
     echo "  update               - Update dependencies"
     echo "  venv                 - Create and activate virtual environment"
+    echo "  venv:clean           - Delete and recreate virtual environment"
     echo "  lock                 - Lock dependencies"
     echo "  kernel               - Create Jupyter kernel"
     echo "  remove:kernel        - Remove Jupyter kernel"
@@ -602,7 +777,9 @@ function help {
     echo "  clean                - Clean build artifacts"
     echo "  build                - Build package"
     echo "  publish:test         - Publish to TestPyPI"
+    echo "  publish:test:strict  - Publish to TestPyPI (strict token mode)"
     echo "  publish              - Publish to PyPI"
+    echo "  publish:strict       - Publish to PyPI (strict token mode)"
     echo "  validate:build       - Validate build"
     echo ""
     echo "Release:"
@@ -612,6 +789,15 @@ function help {
     echo "  release:rc           - Create release candidate"
     echo "  release:beta         - Create beta release"
     echo "  release:alpha        - Create alpha release"
+    echo "  release:major:a      - Create major alpha release"
+    echo "  release:major:b      - Create major beta release"
+    echo "  release:major:rc     - Create major release candidate"
+    echo "  release:minor:a      - Create minor alpha release"
+    echo "  release:minor:b      - Create minor beta release"
+    echo "  release:minor:rc     - Create minor release candidate"
+    echo "  release:micro:a      - Create micro alpha release"
+    echo "  release:micro:b      - Create micro beta release"
+    echo "  release:micro:rc     - Create micro release candidate"
     echo "  rollback             - Rollback last release"
     echo "  help:release         - Show detailed release help"
     echo ""
