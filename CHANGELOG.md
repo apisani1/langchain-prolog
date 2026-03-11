@@ -1,4 +1,34 @@
 # Changelog
+## [0.1.1.post17] - 2026-03-11
+
+ ### Changes
+ 
+### Infrastructure & Tooling Improvements
+This release is a maintenance release focused on CI/CD, developer tooling, and project infrastructure.
+
+**CI/CD Workflows**
+* New workflow: Added delete_workflow_runs.yml to automatically clean up old GitHub Actions runs
+* docs.yml: Updated dependency cache key for better cache hit rates; fixed GitHub Script syntax in the PR comment step
+* tests.yml: Added pull_request trigger so tests also run on PRs; improved cache key to include poetry.lock; added exit 5 handling to allow "no tests collected" as a passing result
+* release.yml:
+    * Added tag-on-main branch verification step
+    * Improved release type detection (is_latest, release_type classification for stable, pre-release, post, draft)
+    * Upgraded to softprops/action-gh-release@v2 with make_latest support
+    * Added retry/polling loop for ReadTheDocs updates
+    * Added release summary step
+    * Added strict publish modes (publish:test:strict, publish:strict)
+  
+**Developer Scripts**
+* scripts/release.py: Refactored to use a RollbackState class for safer rollbacks; improved bump_version logic with nested helper functions; added --no-interactive CLI flag; improved commit message derivation
+* scripts/update_versions.py: New script for managing version updates across project files
+Makefile & run.sh
+* Makefile: Added venv-clean, lint-mypy, lint-flake8, lint-pylint, test-manual, publish-test-strict, publish-strict, and all pre-release variant targets (release-major-a/b/rc, release-minor-a/b/rc, release-micro-a/b/rc)
+* run.sh: Added Python 3 shim for compatibility, venv:clean command, config_get helper replacing try-load-dotenv, proper publish token handling, extended release functions
+Project Configuration
+* CLAUDE.md: Added development commands reference and architecture overview for Claude Code integration
+* .gitignore: Added .claude/ directory exclusion
+
+
 ## [0.1.1.post16] - 2025-06-29
 
  ### Changes
