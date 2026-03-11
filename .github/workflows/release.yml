@@ -129,18 +129,25 @@ jobs:
           ARCH=$(uname -m)
           echo "LD_LIBRARY_PATH=$SWIPL_HOME/lib/$ARCH-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
-          # Install package from TestPyPI
+          # Install package from TestPyPI (pin exact version to avoid picking up older TestPyPI uploads)
           pip install "langchain>=0.3.0"
           pip install --index-url https://test.pypi.org/simple/ \
               --extra-index-url https://pypi.org/simple \
-              langchain-prolog
+              "langchain-prolog==${{ steps.release-info.outputs.version }}"
 
           # Set up Python environment
           SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
           export PYTHONPATH="${SITE_PACKAGES}:${PYTHONPATH:-}"
 
           # Test import and version
-          python -c "import langchain_prolog; print(f'Installed version: {langchain_prolog.__version__}')"
+          EXPECTED_VERSION="${{ steps.release-info.outputs.version }}"
+          INSTALLED_VERSION=$(python -c "import langchain_prolog; print(langchain_prolog.__version__)")
+          echo "Installed version: $INSTALLED_VERSION"
+          if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "::error::Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
+            exit 1
+          fi
+          echo "Version check passed: $INSTALLED_VERSION"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
