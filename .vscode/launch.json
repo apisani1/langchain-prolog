@@ -1,0 +1,80 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Prolog Files",
+            "type": "prolog",
+            "request": "launch",
+            "runtimeExecutable": "/opt/homebrew/bin/swipl",
+            "runtimeArgs": [
+                    "-s", "${file}",
+                    "-g", "start",
+                    "-t", "halt",
+                    "-q",
+                ],
+            "env": {},
+            "program": "${file}",
+            "cwd": "${fileDirname}",
+            "startupQuery": "main",
+            "stopOnEntry": true,
+            "traceCmds": {
+                "continue": ["leap", "l"],
+                "stepover": ["skip", "s"],
+                "stepinto": ["creep", "c"],
+                "stepout": ["up", "u"]
+            }
+        },
+        {
+            "name": "Run Prolog Files",
+            "type": "prolog",
+            "request": "launch",
+            "runtimeExecutable": "/opt/homebrew/bin/swipl",
+            "runtimeArgs": [
+                "-s", "${file}",
+                "-g", "main",
+                "-t", "halt",
+
+            ],
+            "env": {},
+            "program": "${file}",
+            "cwd": "${fileDirname}",
+            "stopOnEntry": false,
+            "startupQuery": "main",
+            "traceCmds": {
+                "continue": ["leap", "l"],
+                "stepover": ["skip", "s"],
+                "stepinto": ["creep", "c"],
+                "stepout": ["up", "u"]
+            }
+        },
+        {
+            "name": "Python with Prolog",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src:${PYTHONPATH}",
+                "DYLD_LIBRARY_PATH": "/opt/homebrew/Cellar/swi-prolog/9.2.8/lib/swipl/lib/arm64-darwin:/opt/homebrew/Cellar/swi-prolog/9.2.8/lib/Frameworks",
+                "SWI_HOME_DIR": "/opt/homebrew/Cellar/swi-prolog/9.2.8/lib/swipl"
+            },
+        },
+        {
+            "name": "Python (Regular)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python Main",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
