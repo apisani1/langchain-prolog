@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "langchain-prolog"
-copyright = "2025, Antonio Pisani"
+copyright = "2026, Antonio Pisani"
 author = "Antonio Pisani"
 release = "0.1.1.post17"
 
