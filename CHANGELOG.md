@@ -1,4 +1,28 @@
 # Changelog
+## [0.1.1.post18] - 2026-03-11
+
+### Changes
+
+### CI/CD & Documentation Fixes
+
+This is a maintenance release fixing several issues in the documentation build pipeline and release workflow discovered after v0.1.1.post17.
+
+**Documentation Build (docs.yml)**
+Fixed docs build producing no HTML output: The docs.yml workflow was calling poetry run make html, which invokes the docs/Makefile's default SPHINXBUILD = poetry run sphinx-build — creating a nested poetry run invocation that silently failed in CI, leaving only _static/ in the output directory with no pages written. Fixed by running sphinx-build directly and bypassing make entirely.
+
+Fixed intersphinx crash (Sphinx 8.2.3 bug): A bug in sphinx.ext.intersphinx._load causes a TypeError: not enough arguments for format string whenever any inventory URL fails to load (redirect, 404, or network error). The LangChain inventory URL had moved, triggering this bug on every build. Fixed by removing the LangChain entry from intersphinx_mapping (all cross-references are already disabled via intersphinx_disabled_reftypes = ["*"]).
+
+Fixed autodoc requiring SWI-Prolog at build time: Added autodoc_mock_imports = ["janus_swi"] to conf.py so Sphinx does not attempt to load the janus_swi C extension during the docs build. Removed the stale docs/api/langchain_prolog 2.rst duplicate file that was generating ~125 spurious warnings.
+
+Fixed Check Build Output step: Refactored to work from the workspace root rather than cd-ing into a directory that might not exist.
+
+**Release Workflow (release.yml)**
+Fixed TestPyPI installation picking up wrong version: The test installation step did not pin a version, so pip resolved the highest semver on TestPyPI (an older 0.3.0 upload rather than the freshly published version). Fixed by installing langchain-prolog==$VERSION with an exact pin. Added an explicit version assertion to fail the workflow if __version__ doesn't match the expected release version.
+Other
+
+Updated copyright year to 2026 in docs/conf.py.
+
+
 ## [0.1.1.post17] - 2026-03-11
 
  ### Changes
