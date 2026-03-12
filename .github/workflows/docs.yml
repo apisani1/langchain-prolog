@@ -78,13 +78,16 @@ jobs:
         run: |
           cd docs
           poetry run doc8 . || echo "Documentation quality check found issues"
-          poetry run make linkcheck || echo "Link check found broken links"
+          poetry run sphinx-build -b linkcheck -v . _build/linkcheck || echo "Link check found broken links"
         continue-on-error: true
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          SPHINX_BUILD: "True"
 
       - name: Build Documentation
         run: |
-          cd docs
-          poetry run make SPHINXBUILD="sphinx-build" SPHINXOPTS="-v" html
+          rm -rf docs/_build/html
+          poetry run sphinx-build -b html -v docs docs/_build/html 2>&1
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           SPHINX_DEBUG: 1
@@ -94,9 +97,12 @@ jobs:
         if: always()
         run: |
           echo "Checking docs build directory..."
-          cd docs/_build/html
-          ls -la
-          if [ -f "index.html" ]; then
+          if [ ! -d "docs/_build/html" ]; then
+            echo "Documentation build failed - _build/html directory missing"
+            exit 1
+          fi
+          ls -la docs/_build/html
+          if [ -f "docs/_build/html/index.html" ]; then
             echo "Documentation built successfully"
           else
             echo "Documentation build failed - no index.html"
