@@ -46,6 +46,9 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
+# Mock C extensions so docs build doesn't require a SWI-Prolog runtime
+autodoc_mock_imports = ["janus_swi"]
+
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

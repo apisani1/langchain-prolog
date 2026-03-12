@@ -84,10 +84,11 @@ jobs:
       - name: Build Documentation
         run: |
           cd docs
-          poetry run make SPHINXOPTS="-v" html
+          poetry run make SPHINXBUILD="sphinx-build" SPHINXOPTS="-v" html
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           SPHINX_DEBUG: 1
+          SPHINX_BUILD: "True"
 
       - name: Check Build Output
         if: always()
