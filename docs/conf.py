@@ -52,7 +52,6 @@ autodoc_mock_imports = ["janus_swi"]
 # Intersphinx configuration for external documentation
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "langchain": ("https://reference.langchain.com/python", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
