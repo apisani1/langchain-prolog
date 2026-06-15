@@ -10,3 +10,4 @@ sphinx-tabs==3.4.7
 # Required dependencies for importing modules
 pydantic>=2.0.0
 langchain>=0.3.0
+tornado>=6.5.3 # not directly required, pinned by Snyk to avoid a vulnerability
