@@ -1,4 +1,73 @@
 # Changelog
+
+## [1.0.0] - 2026-06-16
+
+### Breaking Changes
+
+- **Requires `langchain >= 1.3.9, < 2.0.0`** (was `^0.3.0`). Projects pinning langchain to the 0.3 line cannot upgrade in place.
+- **Requires `pydantic >= 2.7.4, < 3.0.0`** (was `^2.0.0`) to satisfy the new langchain-core floor.
+- **New explicit dependency: `langchain-core >= 1.4.6, < 1.5.0`.** Pulled transitively by langchain 1.x; pinned narrowly to hedge against future removal of the private `langchain_core.tools.base._get_runnable_config_param` used by `PrologTool`.
+- **New transitive dependency: `langgraph >= 1.2.4, < 1.3.0`.**
+
+#### Upgrade notes
+
+If your project pins `langchain-prolog` and `langchain` separately, bump both:
+
+```toml
+langchain-prolog = "^1.0.0"
+langchain = "^1.3.9"
+pydantic = "^2.7.4"
+```
+
+The public `PrologConfig` / `PrologRunnable` / `PrologTool` API is unchanged — no caller-side code changes are required for the langchain upgrade itself. However, code in your project that referenced the removed top-level `langchain.{verbose,debug,llm_cache}` globals or the `langchain.globals` submodule must switch to `from langchain_core.globals import set_verbose, set_debug, set_llm_cache` (and pass `None` to `set_llm_cache` to disable, not `False`).
+
+### Added
+
+- New test module `tests/test_prolog_init.py` with 20 fully-mocked unit tests covering every fix in this release's Prolog initialization work. No SWI-Prolog install required to run.
+
+### Changed
+
+- Internal: `src/langchain_prolog/runnable.py` swaps the removed top-level `langchain.{verbose,debug,llm_cache}` module attributes for the `langchain_core.globals.{set_verbose,set_debug,set_llm_cache}` setters. Drop-in; library behavior unchanged.
+
+### Fixed
+
+- **SWI-Prolog initialization hardened across platforms** (PR #2):
+  - **macOS:** the documented `SWIPL_*_DIR` env-var fallback is now actually reachable when Homebrew Cellar is absent (previously failed earlier with an unrelated error).
+  - **macOS:** Intel installs at `/usr/local` are now supported alongside Apple Silicon; the zlib path is derived from the matching Homebrew prefix.
+  - **macOS:** latest SWI-Prolog version selected numerically (9.10.0 > 9.2.0) instead of lexicographically; Homebrew revision suffixes like `9.10.0_2` are handled.
+  - **macOS:** `DYLD_LIBRARY_PATH` is appended to instead of clobbered.
+  - **All platforms:** a failed `libswipl` preload now raises `PrologInitializationError` immediately instead of warning and failing later with a cryptic downstream error. The original cause is preserved with `from e`.
+  - **All platforms:** `initialize_prolog` re-raises an inner `PrologInitializationError` unchanged to avoid nested messages and double logging.
+  - **Linux/Windows:** only standard paths whose `lib/` or `bin/` subdir actually exists are accepted, so the env-var fallbacks are reachable on these platforms too.
+  - `is_doc_build` no longer relies on the broad `"sphinx" in sys.modules` heuristic; uses `READTHEDOCS` / `SPHINX_BUILD` env signals only.
+  - Use `os.environ.get("PATH", "")` so initialization no longer raises `KeyError` in minimal environments.
+- Cleared four chronic pylint warnings in `src/langchain_prolog/runnable.py` (`R0913` on `__init__`, `R0914` / `R0912` on `stream`, `R1714` on the truth-tuple comparison). Pylint score 9.85/10 → 10.00/10; behavior unchanged.
+
+### Security
+
+- `docs/requirements.txt` now pins `tornado >= 6.5.3` per Snyk advisory (PR #1). Affects the documentation build only.
+
+### Documentation
+
+- All examples migrated to the canonical langchain 1.x agent API. The "LangChain agent" sections of `README.md`, `docs/source/tool.md`, `examples/prolog_tool.ipynb`, and `examples/route_planner/route_planner_google_colab.ipynb` now use `from langchain.agents import create_agent` instead of the removed `create_tool_calling_agent` + `AgentExecutor` pattern. Result extraction updates from `answer["output"]` to `answer["messages"][-1].content`.
+- The "LangGraph agent" sections of these files continue to demonstrate `langgraph.prebuilt.create_react_agent` as the alternative-API path. `examples/route_planner/route_planner.ipynb` migrated fully to `create_agent` (no parallel-API structure).
+- Google Colab notebook (`route_planner_google_colab.ipynb`): the 8-line pip install block — with outdated `langgraph==0.2.74` / `langgraph-checkpoint==2.0.16` / `langgraph-sdk==0.1.53` pins, a never-imported `langchain-community`, and a `--quie` typo — collapsed to a single `pip install --quiet langchain-prolog`. Runtime deps now arrive transitively. Provider-specific `get_answer` lambdas collapsed into a uniform `response["messages"][-1].content` accessor.
+
+### Internal
+
+- Dev-environment files synced from [`apisani1/generate-project v2.2.0`](https://github.com/apisani1/generate-project) (poetry-template), preserving project-specific customizations:
+  - `scripts/release.py` — replaced with the v2.2.0 version. Adds the new `--release-docs` / `.tmp_release_docs/` flow, skills-manifest hook, and backup-delete handling. `--changes` is now deprecated.
+  - `scripts/install_claude_skills.py` — new template helper.
+  - `run.sh` — adopt the `--release-docs` flow (drop deprecated `get:changes` / `--changes`), unquote `$PYTHON_FILES` so multi-file linting actually lints multiple files, add mypy-exclude `LINT_FILES` logic.
+  - `.github/workflows/release.yml` — smarter "Prepare release notes" step (RELEASE_NOTES.md / CHANGELOG.md) with emoji.
+  - `.github/workflows/docs.yml` — permissions block, `-poetry-v2-` cache restore-key, continue-on-error on the PR-comment step.
+  - `.vscode/settings.json` — linters now run via poetry; pylint `--ignore-paths` typo fixed.
+  - `Makefile` — `test-manual` help line.
+  - `CLAUDE.md` — appended Development Workflow, Code Style, and Gotchas sections.
+  - `.readthedocs.yaml` intentionally left unchanged (its `--only docs` flow avoids `janus-swi`, which cannot build on Read the Docs).
+- `.tmp_release_docs/` (release-docs skill output) added to `.gitignore` so release drafts no longer appear in `git status`.
+- VS Code workbench theme switched to "Dark+" in `.vscode/settings.json`.
+
 ## [0.1.1.post18] - 2026-03-11
 
 ### Changes
