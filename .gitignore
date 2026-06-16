@@ -37,6 +37,10 @@ coverage.xml
 # Claude
 .claude/*
 
+# Project notes (local only)
+notes/
+.tmp_release_docs/
+
 # Environment
 .venv
 env/
@@ -47,7 +51,3 @@ ENV/
 .DS_Store
 *.pkl
 *.pickle
-
-# Obsidian project notes (local only)
-notes/
-.tmp_release_docs/

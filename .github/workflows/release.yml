@@ -68,34 +68,49 @@ jobs:
           if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.(post)[0-9]+)?$ ]]; then
             echo "is_latest=true" >> $GITHUB_OUTPUT
             echo "release_type=release" >> $GITHUB_OUTPUT
-            echo "Stable release - will be marked as latest"
+            echo "📦 Stable release - will be marked as latest"
           elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+[-\.]?(a|alpha|b|beta|rc)[0-9]*$ ]]; then
             echo "is_latest=false" >> $GITHUB_OUTPUT
             echo "release_type=prerelease" >> $GITHUB_OUTPUT
-            echo "Pre-release - will NOT be marked as latest"
+            echo "🧪 Pre-release - will NOT be marked as latest"
           elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+[-\.]?(dev)[0-9]*$ ]]; then
             echo "is_latest=false" >> $GITHUB_OUTPUT
             echo "release_type=dev" >> $GITHUB_OUTPUT
-            echo "Development release - will NOT be marked as latest"
+            echo "🚧 Development release - will NOT be marked as latest"
           else
             echo "is_latest=false" >> $GITHUB_OUTPUT
             echo "release_type=draft" >> $GITHUB_OUTPUT
-            echo "Draft release - will NOT be marked as latest"
+            echo "📝 Draft release - will NOT be marked as latest"
           fi
 
-      - name: Extract release notes from tag
+      - name: Prepare release notes
         id: release-notes
         run: |
           VERSION=${{ steps.release-info.outputs.version }}
           TAG_NAME=${{ steps.release-info.outputs.tag_name }}
+          TAG_COMMIT=$(git rev-list -n 1 "$TAG_NAME")
 
-          echo "Extracting message from tag $TAG_NAME..."
-          git tag -l --format='%(contents)' "$TAG_NAME" > RELEASE_NOTES.md
+          if [ -s RELEASE_NOTES.md ] && git diff-tree --root --no-commit-id --name-only -r "$TAG_COMMIT" | grep -qx 'RELEASE_NOTES.md'; then
+            echo "Using RELEASE_NOTES.md changed in tagged commit $TAG_COMMIT"
+          elif [ -s CHANGELOG.md ]; then
+            echo "RELEASE_NOTES.md not changed in tagged commit; extracting CHANGELOG.md entry for $VERSION..."
+            awk -v version="$VERSION" '
+              BEGIN {
+                escaped = version
+                gsub(/\./, "\\.", escaped)
+              }
+              /^## / {
+                if (seen) exit
+                if ($0 ~ "^## \\[?" escaped "\\]?([[:space:]]|-|$)") seen = 1
+              }
+              seen { print }
+            ' CHANGELOG.md > RELEASE_NOTES.md
+          fi
 
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "Warning: Could not extract tag message for $TAG_NAME"
+            echo "Warning: Could not prepare release notes for $TAG_NAME"
             echo "Creating simple release notes..."
-            echo "# Release $TAG_NAME" > RELEASE_NOTES.md
+            echo "## Release $TAG_NAME" > RELEASE_NOTES.md
             echo "" >> RELEASE_NOTES.md
             echo "See CHANGELOG.md for details." >> RELEASE_NOTES.md
           fi
@@ -193,13 +208,13 @@ jobs:
 
       - name: Release Summary
         run: |
-          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Type**: ${{ steps.release-info.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Latest**: ${{ steps.release-info.outputs.is_latest }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **ReadTheDocs**: Updated" >> $GITHUB_STEP_SUMMARY
+          echo "- **ReadTheDocs**: ✅ Updated" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ steps.release-info.outputs.release_type }}" == "release" ]]; then
-            echo "- **PyPI**: Published" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: ✅ Published" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **PyPI**: Skipped (not a stable release)" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: ⏭️ Skipped (not a stable release)" >> $GITHUB_STEP_SUMMARY
           fi

@@ -21,6 +21,17 @@ from packaging.version import (
     Version,
 )
 
+try:
+    from generate_project.skills import (
+        manifest_path,
+        write_manifest,
+    )
+except ImportError:
+    # generate_project.skills only exists in the generator repo itself. In projects
+    # generated from this template it is absent, so manifest regeneration becomes a
+    # no-op and this script can be shared verbatim across both.
+    manifest_path = None
+    write_manifest = None
 
 logging.basicConfig(
     level=logging.CRITICAL,
@@ -58,6 +69,14 @@ class PrereleaseType(Enum):
 
 PROJECT_FILE = "pyproject.toml"
 CHANGELOG_FILE = "CHANGELOG.md"
+RELEASE_NOTES_FILE = "RELEASE_NOTES.md"
+DEFAULT_RELEASE_DOCS_DIR = ".tmp_release_docs"
+RELEASE_DOCS_FILES = {
+    "commit": "commit.txt",
+    "tag": "tag.txt",
+    "changelog": "changelog.md",
+    "release_notes": "release_notes.md",
+}
 
 
 class RollbackState:
@@ -68,9 +87,9 @@ class RollbackState:
     def __init__(self, start_dt: datetime, current_version: Version) -> None:
         self.start_dt = start_dt
         self.current_version = current_version
-        self.files_backup: List[Tuple[str, str]] = []
+        self.files_backup: List[Tuple[str, Optional[str]]] = []
 
-    def add_to_backup(self, entries: List[Tuple[str, str]]) -> None:
+    def add_to_backup(self, entries: List[Tuple[str, Optional[str]]]) -> None:
         """Append file backup entries (path, original_content)."""
         self.files_backup.extend(entries)
 
@@ -100,14 +119,36 @@ class RollbackState:
         """Restore backed-up files to their original content."""
         for file_path, original_content in self.files_backup:
             file = Path(file_path)
-            if file.exists():
-                print(f"-Restoring {file_path}")
-                file.write_text(original_content)
+            if original_content is None:
+                if file.exists():
+                    print(f"-Deleting {file_path}")
+                    file.unlink()
+                continue
+            print(f"-Restoring {file_path}")
+            file.write_text(original_content)
 
     def cleanup(self) -> None:
         """Remove the pickle file after successful rollback."""
         if os.path.exists(self.PICKLE_FILE):
             os.remove(self.PICKLE_FILE)
+
+
+def regenerate_asset_manifest(state: RollbackState) -> None:
+    """Regenerate the bundled Claude asset manifest so every release ships a
+    manifest in sync with the asset tree. Registered for rollback.
+
+    No-op when ``generate_project.skills`` is unavailable (e.g. in projects
+    generated from this template), so this script can be shared verbatim."""
+    if manifest_path is None or write_manifest is None:
+        return
+    path = manifest_path()
+    original = path.read_text() if path.exists() else None
+    state.add_to_backup([(str(path), original)])
+    write_manifest()
+    if path.read_text() != original:
+        print(f"-Regenerated stale asset manifest: {path}")
+    else:
+        print("-Asset manifest already up to date")
 
 
 def create_release(
@@ -116,6 +157,8 @@ def create_release(
     changes_message: Optional[str] = None,
     project_file: str = PROJECT_FILE,
     changelog_file: str = CHANGELOG_FILE,
+    release_notes_file: str = RELEASE_NOTES_FILE,
+    release_docs: Optional[str] = None,
     interactive: bool = True,
 ) -> Version:
     """
@@ -129,6 +172,8 @@ def create_release(
             If no message is provided, will use git commit messages since last release.
         project_file: Path to the project TOML file. Default: pyproject.toml.
         changelog_file: Path to the changelog markdown file. Default: CHANGELOG.md.
+        release_notes_file: Path to the release notes markdown file. Default: RELEASE_NOTES.md.
+        release_docs: Optional folder containing release artifact drafts.
 
     Returns:
         The release version number as a packaging.version.Version object.
@@ -150,20 +195,35 @@ def create_release(
 
         # Verify that there are changes since the last release
         latest_tag = get_latest_release_tag()
+        latest_tag_dt = get_release_tag_datetime(latest_tag) if latest_tag else None
         commit_messages = get_commits_since_tag(latest_tag)
         if not commit_messages:
             raise ValueError("No new commits since last release.")
-        if not changes_message:
-            changes_message = "\n".join(f"- {msg}" for msg in commit_messages)
+        if changes_message:
+            print("Warning: --changes is deprecated. Use --release-docs with commit.txt instead.")
+        changes = changes_message or "\n".join(f"- {msg}" for msg in commit_messages)
 
         date = time_stamp.strftime("%Y-%m-%d")
         current_version = get_current_version(project_file)
         state = RollbackState(time_stamp, current_version)
+        regenerate_asset_manifest(state)
         new_version = bump_version(current_version, release_type, prerelease_type, interactive)
         update_version_files(project_file, new_version, state)
-        changelog_entry = update_changelog(changelog_file, date, new_version, changes_message, state, interactive)
-        commit_message = create_commit(new_version, changelog_entry, interactive)  # type: ignore
-        create_tag(date, new_version, commit_message, interactive=interactive)
+        release_docs_path = Path(release_docs) if release_docs else None
+        commit_doc = read_release_doc(release_docs_path, "commit", latest_tag, latest_tag_dt, interactive)
+        commit_message = create_commit_message(new_version, changes, interactive, commit_doc)
+        tag_doc = read_release_doc(release_docs_path, "tag", latest_tag, latest_tag_dt, interactive)
+        tag_message = create_tag_message(date, new_version, commit_message, interactive, tag_doc)
+        changelog_doc = read_release_doc(release_docs_path, "changelog", latest_tag, latest_tag_dt, interactive)
+        changelog_entry = update_changelog(
+            changelog_file, date, new_version, commit_message, state, interactive, changelog_doc
+        )
+        release_notes_doc = read_release_doc(
+            release_docs_path, "release_notes", latest_tag, latest_tag_dt, interactive
+        )
+        create_release_notes(release_notes_file, new_version, changelog_entry, state, interactive, release_notes_doc)
+        create_commit(new_version, commit_message)
+        create_tag(new_version, tag_message)
         state.save()
 
         return new_version
@@ -190,11 +250,68 @@ def get_latest_release_tag() -> Optional[str]:
     return valid_tags[0]
 
 
+def get_release_tag_datetime(tag: str) -> datetime:
+    """Get the annotated tag datetime, falling back to the tagged commit datetime."""
+    tag_dt = subprocess.check_output(
+        ["git", "for-each-ref", f"refs/tags/{tag}", "--format=%(taggerdate:iso-strict)"],
+        text=True,
+    ).strip()
+    if not tag_dt:
+        tag_dt = subprocess.check_output(
+            ["git", "log", "-1", "--format=%cd", "--date=iso-strict", tag],
+            text=True,
+        ).strip()
+    return datetime.fromisoformat(tag_dt)
+
+
 def get_commits_since_tag(tag: Optional[str]) -> list[str]:
     """Retrieve commit messages since the given tag."""
     range = f"{tag}..HEAD" if tag else "HEAD"
     commit_messages = subprocess.check_output(["git", "log", f"{range}", "--pretty=format:%s"], text=True).splitlines()
     return commit_messages
+
+
+def read_release_doc(
+    release_docs_path: Optional[Path],
+    doc_key: str,
+    latest_tag: Optional[str],
+    latest_tag_dt: Optional[datetime],
+    interactive: bool,
+) -> Optional[str]:
+    """Read a release documentation draft if it exists and is newer than the previous release tag."""
+    if release_docs_path is None:
+        return None
+
+    doc_name = RELEASE_DOCS_FILES[doc_key]
+    doc_path = release_docs_path / doc_name
+    description = f"{doc_path} for {doc_key.replace('_', ' ')}"
+
+    if not release_docs_path.is_dir():
+        confirm_release_doc_fallback(f"{release_docs_path} does not exist.", interactive)
+        return None
+    if not doc_path.exists():
+        confirm_release_doc_fallback(f"{description} is missing.", interactive)
+        return None
+    content = doc_path.read_text()
+    if not content.strip():
+        confirm_release_doc_fallback(f"{description} is empty.", interactive)
+        return None
+    if latest_tag_dt is not None:
+        doc_mtime = datetime.fromtimestamp(doc_path.stat().st_mtime).astimezone()
+        if doc_mtime < latest_tag_dt:
+            confirm_release_doc_fallback(f"{description} is older than {latest_tag}.", interactive)
+            return None
+    return content
+
+
+def confirm_release_doc_fallback(message: str, interactive: bool) -> None:
+    """Confirm or warn before falling back from a missing, empty, or stale release doc."""
+    fallback_message = f"{message} Falling back to generated release content."
+    if not interactive:
+        print(f"Warning: {fallback_message}")
+        return None
+    ask_user(f"{fallback_message}\nContinue?", ["Continue", "Cancel"])
+    return None
 
 
 def get_current_version(project_file: str) -> Version:
@@ -457,7 +574,7 @@ def update_version_files(project_file: str, new_version: Version, state: Rollbac
                 continue
             content = file.read_text()
             # Build pattern with capturing groups to preserve format
-            pattern = rf'({re.escape(version_key)})(\s*)([:=])(\s*)(["\']?)([^"\'<>\s\n]+)(["\']?)'
+            pattern = rf'({re.escape(version_key)})(\s*)([:=])(\s*)(["\']?)([^"\'<>\s\n)]+)(["\']?)'
 
             def replace_version(match: re.Match) -> str:
                 """Preserve the original format while updating the version."""
@@ -489,16 +606,18 @@ def update_changelog(
     changelog_path: str,
     date: str,
     new_version: Version,
-    changes: str,
+    commit_message: str,
     state: RollbackState,
     interactive: bool = True,
-) -> Optional[str]:
+    initial_content: Optional[str] = None,
+) -> str:
     """Update changelog file with changes since the last release."""
 
     logger.info(f"Updating '{changelog_path}' to {new_version}.")
     try:
-        changelog_entry = f"## [{new_version}] - {date}\n\n ### Changes\n"
-        changelog_entry += changes + "\n\n"
+        changelog_entry = initial_content or f"## [{new_version}] - {date}\n\n### Changes\n"
+        if initial_content is None:
+            changelog_entry += extract_changes_section(commit_message) + "\n\n"
         if interactive:
             changelog_entry = open_in_editor("changelog entry", changelog_entry, "md")
         changelog_file = Path(changelog_path)
@@ -507,12 +626,12 @@ def update_changelog(
             # Find the position after the first heading
             if "\n## " in current_content:
                 header, rest = current_content.split("\n## ", 1)
-                new_content = f"{header}\n{changelog_entry}\n\n## {rest}"
+                new_content = f"{header.rstrip()}\n\n{changelog_entry.strip()}\n\n## {rest}"
             else:
-                new_content = f"{current_content}\n\n{changelog_entry}\n"
+                new_content = f"{current_content.rstrip()}\n\n{changelog_entry.strip()}\n"
         else:
             current_content = ""
-            new_content = f"# Changelog\n\n{changelog_entry}\n"
+            new_content = f"# Changelog\n\n{changelog_entry.strip()}\n"
         changelog_file.write_text(new_content)
 
         state.add_to_backup([(str(changelog_file), current_content)])
@@ -521,6 +640,30 @@ def update_changelog(
 
     except OSError as e:
         raise RuntimeError(f"Failed to update changelog: {e}") from e
+
+
+def create_release_notes(
+    release_notes_path: str,
+    new_version: Version,
+    changelog_entry: str,
+    state: RollbackState,
+    interactive: bool = True,
+    initial_content: Optional[str] = None,
+) -> str:
+    """Write markdown release notes for the GitHub Release body."""
+
+    logger.info(f"Updating '{release_notes_path}' to {new_version}.")
+    try:
+        release_notes = initial_content or changelog_entry.strip() + "\n"
+        if interactive:
+            release_notes = open_in_editor("release notes", release_notes, "md")
+        release_notes_file = Path(release_notes_path)
+        current_content = release_notes_file.read_text() if release_notes_file.exists() else None
+        release_notes_file.write_text(release_notes)
+        state.add_to_backup([(str(release_notes_file), current_content)])
+        return release_notes
+    except OSError as e:
+        raise RuntimeError(f"Failed to update release notes: {e}") from e
 
 
 def ask_user(message: str, choices: List[str], cancel: str = "Cancel") -> str:
@@ -608,42 +751,74 @@ def analyze_version_for_commit(version: Version) -> Tuple[str, str, str]:
     return change_type, scope, suffix
 
 
-def create_commit(
+def extract_changes_section(message: str) -> str:
+    """Extract the user-facing changes body from a release message."""
+    if "Changes" in message:
+        _, message = message.split("Changes", 1)
+        lines = message.strip().splitlines()
+        if lines and set(lines[0]) == {"-"}:
+            lines = lines[1:]
+        return "\n".join(lines).strip()
+    return message.strip()
+
+
+def create_commit_message(
     new_version: Version,
     changes: str,
     interactive: bool = True,
+    initial_content: Optional[str] = None,
 ) -> str:
-    """Create a commit with the changes."""
-    # Determine commit message components from the version itself
-    change_type, scope, suffix = analyze_version_for_commit(new_version)
+    """Create the plain text release commit message."""
+    if initial_content is not None:
+        commit_message = initial_content
+    else:
+        # Determine commit message components from the version itself
+        change_type, scope, suffix = analyze_version_for_commit(new_version)
 
-    commit_msg = [f"release {new_version}: {change_type}({scope}) {suffix}"]
-    commit_msg.append("")
-    commit_msg.append("Changes")
-    commit_msg.append("-" * 80)
-    if "Changes" in changes:
-        _, changes = changes.split("Changes", 1)
-    commit_msg.append(changes.strip())
-    commit_message = "\n".join(commit_msg)
+        header = f"release {new_version}: {change_type}({scope})"
+        if suffix:
+            header = f"{header} {suffix}"
+        commit_msg = [header]
+        commit_msg.append("")
+        commit_msg.append("Changes")
+        commit_msg.append("-" * 80)
+        commit_msg.append(changes.strip())
+        commit_message = "\n".join(commit_msg)
     if interactive:
         commit_message = open_in_editor("commit message", commit_message, "txt")
+    return commit_message
+
+
+def create_tag_message(
+    date: str,
+    new_version: Version,
+    commit_message: str,
+    interactive: bool = True,
+    initial_content: Optional[str] = None,
+) -> str:
+    """Create the plain text release tag message."""
+    tag_message = initial_content or f"Release v{new_version} - {date}\n\n{extract_changes_section(commit_message)}"
+    if interactive:
+        tag_message = open_in_editor("tag message", tag_message, "txt")
+    return tag_message
+
+
+def create_commit(
+    new_version: Version,
+    commit_message: str,
+) -> None:
+    """Create a commit with the release changes."""
     print(f"-Creating release commit for version: {new_version}")
     logger.info("Staging changes...")
     subprocess.run(["git", "add", "."], check=True)
     logger.info("Committing changes...")
     subprocess.run(["git", "commit", "-m", commit_message], check=True)
-    return commit_message
 
 
-def create_tag(date: str, new_version: Version, changes: str, interactive: bool = True) -> None:
+def create_tag(new_version: Version, tag_message: str) -> None:
     """Create a tag for the release."""
     tag = f"v{new_version}"
     logger.info(f"Creating tag: {tag}")
-    if "Changes" in changes:
-        _, changes = changes.split("Changes", 1)
-    tag_message = f"{tag} - {date}\n{changes.strip()}"
-    if interactive:
-        tag_message = open_in_editor("release note", tag_message, "txt")
     logger.info(f"Creating release tag for version: {new_version}")
     subprocess.run(["git", "tag", "-a", tag, "-m", tag_message], check=True)
 
@@ -695,7 +870,8 @@ def main() -> None:
 
         parent_parser = argparse.ArgumentParser(add_help=False)
         parent_parser.add_argument(
-            "--log", "-l",
+            "--log",
+            "-l",
             nargs="?",
             const="",
             default=None,
@@ -710,7 +886,14 @@ def main() -> None:
         release_parser = subparsers.add_parser("create", parents=[parent_parser], help="Create a new release")
         release_parser.add_argument("type", choices=[t.value for t in ReleaseType], help="Type of release")
         release_parser.add_argument("--pre", choices=[t.value for t in PrereleaseType], help="Type of pre-release")
-        release_parser.add_argument("--changes", nargs=1, help="Changes for changelog")
+        release_parser.add_argument("--changes", nargs=1, help="Deprecated. Use --release-docs with commit.txt.")
+        release_parser.add_argument(
+            "--release-docs",
+            nargs="?",
+            const=DEFAULT_RELEASE_DOCS_DIR,
+            default=None,
+            help=f"Folder containing release drafts. Defaults to {DEFAULT_RELEASE_DOCS_DIR} when provided.",
+        )
         release_parser.add_argument(
             "--no-interactive", action="store_true", help="Disable interactive prompts (for CI)"
         )
@@ -739,6 +922,7 @@ def main() -> None:
                 ReleaseType(args.type),
                 PrereleaseType(args.pre) if args.pre else None,
                 changes_message=args.changes[0] if args.changes else None,
+                release_docs=args.release_docs,
                 interactive=not args.no_interactive,
             )
             print(f"Successfully created release {new_version}")
@@ -759,8 +943,7 @@ def main() -> None:
                 print(f"Successfully rolled back to {state.current_version}")
             else:
                 print(
-                    f"Warning: Rollback to {state.current_version} was only partial. "
-                    "Manual intervention may be required."
+                    f"Warning: Rollback to {state.current_version} was only partial. Manual intervention may be required."
                 )
             print("Please review the changes: CHANGLOG.md entry, version files, latest commit and latest tag.")
 

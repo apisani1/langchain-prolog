@@ -335,6 +335,7 @@ help:
 	@echo '  make test                 - Run tests'
 	@echo '  make test-cov             - Run tests with coverage'
 	@echo '  make test-verbose         - Run tests in verbose mode'
+	@echo '  make test-manual          - Run tests marked as manual'
 	@echo '  make test-pattern p=<pat> - Run tests matching pattern'
 	@echo '  make coverage             - Generate coverage report'
 	@echo '  make help-test            - Show help for pytest options'

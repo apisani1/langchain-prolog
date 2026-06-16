@@ -165,7 +165,7 @@ function lint:mypy {
 
     if [ ! -z "$PYTHON_FILES" ]; then
         mkdir -p "$MYPY_CACHE"
-        poetry run mypy "$PYTHON_FILES" --cache-dir "$MYPY_CACHE"
+        poetry run mypy $PYTHON_FILES --cache-dir "$MYPY_CACHE"
     else
         echo "No Python files to check with mypy."
     fi
@@ -176,7 +176,7 @@ function lint:flake8 {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run flake8 "$PYTHON_FILES"
+        poetry run flake8 $PYTHON_FILES
     else
         echo "No Python files to check with flake8."
     fi
@@ -187,7 +187,7 @@ function lint:pylint {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run pylint "$PYTHON_FILES"
+        poetry run pylint $PYTHON_FILES
     else
         echo "No Python files to check with pylint."
     fi
@@ -207,10 +207,37 @@ function lint:diff {
         echo "No changed Python files to lint."
         return 0
     fi
+
+    # Linters ignore project-wide excludes (e.g. [tool.mypy] exclude in
+    # pyproject.toml) when files are passed positionally. Read the mypy
+    # exclude regex from pyproject.toml so `make pre-commit` matches the
+    # `make check` semantics (which only lints ./src/langchain_prolog/).
+    EXCLUDE_REGEX=$(poetry run python -c '
+import sys
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+with open("pyproject.toml", "rb") as f:
+    cfg = tomllib.load(f)
+print(cfg.get("tool", {}).get("mypy", {}).get("exclude", ""))
+')
+
+    if [ -n "$EXCLUDE_REGEX" ]; then
+        LINT_FILES=$(echo "$PYTHON_FILES" | grep -Ev "$EXCLUDE_REGEX" || true)
+    else
+        LINT_FILES="$PYTHON_FILES"
+    fi
+
+    if [ -z "$LINT_FILES" ]; then
+        echo "No changed Python files to lint (all changed files are excluded)."
+        return 0
+    fi
+
     echo "Running linters on changed files..."
-    lint:mypy "$PYTHON_FILES" ".mypy_cache_diff"
-    lint:flake8 "$PYTHON_FILES"
-    lint:pylint "$PYTHON_FILES"
+    lint:mypy "$LINT_FILES" ".mypy_cache_diff"
+    lint:flake8 "$LINT_FILES"
+    lint:pylint "$LINT_FILES"
 }
 
 # Run all linters on test files
@@ -228,7 +255,7 @@ function format:black {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run black "$PYTHON_FILES"
+        poetry run black $PYTHON_FILES
     else
         echo "No Python files to format with black."
     fi
@@ -239,7 +266,7 @@ function format:isort {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run isort "$PYTHON_FILES"
+        poetry run isort $PYTHON_FILES
     else
         echo "No Python files to format with isort."
     fi
@@ -251,7 +278,7 @@ function format:check:black {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run black --check --diff "$PYTHON_FILES"
+        poetry run black --check --diff $PYTHON_FILES
     else
         echo "No Python files to check with black."
     fi
@@ -262,7 +289,7 @@ function format:check:isort {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run isort --check-only --diff "$PYTHON_FILES"
+        poetry run isort --check-only --diff $PYTHON_FILES
     else
         echo "No Python files to check with isort."
     fi
@@ -591,106 +618,80 @@ function validate:build {
 # RELEASE
 ######################
 
-# Helper function to get multi-line changes input
-function get:changes {
-    echo "Enter changes (empty line to finish):" >&2
-    local changes=""
-    while IFS= read -r line; do
-        [[ -z "$line" ]] && break
-        changes="${changes}- ${line}"$'\n'
-    done
-    echo "$changes"
-}
-
 # Release versions
 function release:major {
     echo "Creating major release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create major --changes "$changes"
+    python3 scripts/release.py create major --release-docs
 }
 
 function release:minor {
     echo "Creating minor release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create minor --changes "$changes"
+    python3 scripts/release.py create minor --release-docs
 }
 
 function release:micro {
     echo "Creating micro release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --changes "$changes"
+    python3 scripts/release.py create micro --release-docs
 }
 
 function release:rc {
     echo "Creating release candidate..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre rc --changes "$changes"
+    python3 scripts/release.py create micro --pre rc --release-docs
 }
 
 function release:beta {
     echo "Creating beta release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre b --changes "$changes"
+    python3 scripts/release.py create micro --pre b --release-docs
 }
 
 function release:alpha {
     echo "Creating alpha release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre a --changes "$changes"
+    python3 scripts/release.py create micro --pre a --release-docs
 }
 
 function release:major:a {
     echo "Creating major alpha release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create major --pre a --changes "$changes"
+    python3 scripts/release.py create major --pre a --release-docs
 }
 
 function release:major:b {
     echo "Creating major beta release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create major --pre b --changes "$changes"
+    python3 scripts/release.py create major --pre b --release-docs
 }
 
 function release:major:rc {
     echo "Creating major release candidate..."
-    changes=$(get:changes)
-    python3 scripts/release.py create major --pre rc --changes "$changes"
+    python3 scripts/release.py create major --pre rc --release-docs
 }
 
 function release:minor:a {
     echo "Creating minor alpha release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create minor --pre a --changes "$changes"
+    python3 scripts/release.py create minor --pre a --release-docs
 }
 
 function release:minor:b {
     echo "Creating minor beta release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create minor --pre b --changes "$changes"
+    python3 scripts/release.py create minor --pre b --release-docs
 }
 
 function release:minor:rc {
     echo "Creating minor release candidate..."
-    changes=$(get:changes)
-    python3 scripts/release.py create minor --pre rc --changes "$changes"
+    python3 scripts/release.py create minor --pre rc --release-docs
 }
 
 function release:micro:a {
     echo "Creating micro alpha release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre a --changes "$changes"
+    python3 scripts/release.py create micro --pre a --release-docs
 }
 
 function release:micro:b {
     echo "Creating micro beta release..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre b --changes "$changes"
+    python3 scripts/release.py create micro --pre b --release-docs
 }
 
 function release:micro:rc {
     echo "Creating micro release candidate..."
-    changes=$(get:changes)
-    python3 scripts/release.py create micro --pre rc --changes "$changes"
+    python3 scripts/release.py create micro --pre rc --release-docs
 }
 
 # Rollback release
@@ -728,7 +729,7 @@ function help:release {
 function help {
     echo "$0 <task> <args>"
     echo ""
-    echo "====== langchain_prolog Development Tool ======"
+    echo "====== langchain-prolog Development Tool ======"
     echo ""
     echo "Environment:"
     echo "  install              - Install core dependencies"

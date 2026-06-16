@@ -170,6 +170,8 @@
     "black-formatter.args": [
         "--line-length=119"
     ],
+    "flake8.importStrategy": "fromEnvironment",
+    "flake8.path": ["poetry", "run", "flake8"],
     "flake8.ignorePatterns": [
         "${workspaceFolder}/docs/*.py",
         "${workspaceFolder}/tests/test*.py",
@@ -194,9 +196,9 @@
     "makefile.configureOnOpen": false,
     "pylint.enabled": true,
     "pylint.path": [
-        "pylint"
+        "poetry", "run", "pylint"
     ],
     "pylint.args": [
-        "--ignored-paths=^(tests\\/test.*\\.py|scripts\\/.*\\.py|docs\\/.*\\.py)$",
+        "--ignore-paths=^(tests\\/test.*\\.py|scripts\\/.*\\.py|docs\\/.*\\.py)$",
     ],
 }
