@@ -16,13 +16,17 @@ from typing import (
 )
 
 import janus_swi as janus
-import langchain
 from langchain_core.callbacks.manager import (
     BaseCallbackHandler,
     CallbackManager,
     Callbacks,
 )
-from langchain_core.globals import get_verbose
+from langchain_core.globals import (
+    get_verbose,
+    set_debug,
+    set_llm_cache,
+    set_verbose,
+)
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import (
     RunnableConfig,
@@ -44,9 +48,9 @@ from .exceptions import (
 )
 
 
-langchain.verbose = False
-langchain.debug = False
-langchain.llm_cache = False
+set_verbose(False)
+set_debug(False)
+set_llm_cache(None)
 
 PrologInput = Optional[Union[str, Dict[Any, Any], BaseModel]]
 PrologSolution = Dict[Any, Any]
