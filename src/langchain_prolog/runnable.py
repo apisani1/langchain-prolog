@@ -129,7 +129,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     _prolog_config: PrologConfig = PrivateAttr()
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         prolog_config: Optional[Union[PrologConfig, Dict]] = None,
         *,
@@ -430,7 +430,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         """
         return self.invoke(input, config=config, **kwargs)
 
-    def stream(  # noqa: R701
+    def stream(  # noqa: R701  # pylint: disable=too-many-locals,too-many-branches
         self, input: PrologInput, config: Optional[RunnableConfig] = None, **kwargs: Any
     ) -> Iterator[PrologResult]:
         """
@@ -493,7 +493,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
                 return
 
             # If all the solutions have only the same truth value, yield True or False
-            if first_solution == {"truth": True} or first_solution == {"truth": False}:
+            if first_solution in ({"truth": True}, {"truth": False}):
                 # Store solutions to check if they're all the same
                 solutions = [first_solution]
                 for solution in solutions_iter:
