@@ -125,27 +125,21 @@ prolog_tool = PrologTool(
 ```
 Then pass it to the agent's constructor:
 ```python
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.agents import create_agent
 
 llm = ChatOpenAI(model="gpt-4o-mini")
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful assistant"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
+agent_executor = create_agent(
+    llm,
+    [prolog_tool],
+    system_prompt="You are a helpful assistant",
 )
-tools = [prolog_tool]
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools)
 ```
-The agent takes the query and use the Prolog tool if needed:
+The agent takes the query and uses the Prolog tool if needed:
 ```python
-answer = agent_executor.invoke({"input": "Who are John's children?"})
-print(answer["output"])
+answer = agent_executor.invoke({"messages": [("human", "Who are John's children?")]})
+print(answer["messages"][-1].content)
 ```
-Then the agent recieves the tool response as part of the {agent_scratchpad} placeholder and generates the answer:
+The agent receives the tool response and generates the answer:
 ```python
 John has two children: Mary and Michael. Their mother is Bianca.
 ```
