@@ -50,3 +50,4 @@ ENV/
 
 # Obsidian project notes (local only)
 notes/
+.tmp_release_docs/
