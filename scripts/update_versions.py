@@ -45,7 +45,7 @@ def update_files(new_version: str, dry_run: bool = False) -> None:
             continue
 
         content = path.read_text()
-        pattern = rf'({re.escape(var_name)})(\s*)([:=])(\s*)(["\']?)([^"\'<>\s\n]+)(["\']?)'
+        pattern = rf'({re.escape(var_name)})(\s*)([:=])(\s*)(["\']?)([^"\'<>\s\n)]+)(["\']?)'
         new_content, found = re.subn(pattern, replace_version, content, count=1)
         if not found:
             print(f"Warning: Pattern for {var_name} not found in {file_path}, skipping.")
