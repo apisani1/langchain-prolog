@@ -13,7 +13,7 @@ parent(peter, patricia, jennifer).
 partner(X, Y) :- parent(X, Y, _).
 ```
 
-There are three diferent ways to use a PrologTool to query Prolog:
+There are two diferent ways to use a PrologTool to query Prolog:
 
 ### 1) Using a Prolog tool with an LLM and function calling
 
@@ -142,55 +142,4 @@ print(answer["messages"][-1].content)
 The agent receives the tool response and generates the answer:
 ```python
 John has two children: Mary and Michael. Their mother is Bianca.
-```
-
-### 3) Using a Prolog tool with a LangGraph agent
-
-First create the Prolog tool:
-```python
-from langchain_prolog import PrologConfig, PrologRunnable, PrologTool
-
-schema = PrologRunnable.create_schema("parent", ["man", "woman", "child"])
-config = PrologConfig(
-    rules_file="family.pl",
-    query_schema=schema,
-)
-prolog_tool = PrologTool(
-    prolog_config=config,
-    name="family_query",
-    description="""
-        Query family relationships using Prolog.
-        parent(X, Y, Z) implies only that Z is a child of X and Y.
-        Input must be a dictionary like:
-        {
-            'man': 'richard',
-            'woman': 'valery',
-            'child': None,
-        
-        }
-        Use 'None' to indicate a variable that need to be instantiated by Prolog
-        The query will return:
-            - 'True': if the relationship 'child' is a child of 'men' and 'women' holds.
-            - 'False' if the relationship 'child' is a child of 'man' and 'woman' does not holds.
-            - A list of dictionaries with all the answers to the Prolog query
-        Do not use double quotes.
-    """,
-)
-```
-Then pass it to the agent's constructor:
-```python
-from langgraph.prebuilt import create_react_agent
-
-lg_agent = create_react_agent(llm, [prolog_tool])
-```
-The agent takes the query and use the Prolog tool if needed:
-```python
-messages =lg_agent.invoke({"messages": [("human", query)]})
-messages["messages"][-1].pretty_print()
-```
-Then the agent receives​ the tool response and generates the answer:
-```python
-================================== Ai Message ==================================
-
-John has two children: Mary and Michael, with Bianca as their mother.
 ```

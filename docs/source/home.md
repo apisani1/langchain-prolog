@@ -19,9 +19,9 @@ A Python library that integrates SWI-Prolog with LangChain. It enables seamless 
 - Python 3.10 or later
 - SWI-Prolog installed on your system
 - The following Python libraries will be installed:
-    - `langchain` 0.3.0 or later
+    - `langchain` 1.3.0 or later
     - `janus-swi` 1.5.0 or later
-    - `pydantic` 2.0.0 or later
+    - `pydantic` 2.7.0 or later
 
 Once SWI-Prolog has been installed, langchain-prolog can be installed using pip:
 ```bash
