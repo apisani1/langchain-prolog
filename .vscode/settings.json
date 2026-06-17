@@ -171,7 +171,7 @@
         "--line-length=119"
     ],
     "flake8.importStrategy": "fromEnvironment",
-    "flake8.path": ["poetry", "run", "flake8"],
+    "flake8.path": ["uv", "run", "flake8"],
     "flake8.ignorePatterns": [
         "${workspaceFolder}/docs/*.py",
         "${workspaceFolder}/tests/test*.py",
@@ -196,7 +196,7 @@
     "makefile.configureOnOpen": false,
     "pylint.enabled": true,
     "pylint.path": [
-        "poetry", "run", "pylint"
+        "uv", "run", "pylint"
     ],
     "pylint.args": [
         "--ignore-paths=^(tests\\/test.*\\.py|scripts\\/.*\\.py|docs\\/.*\\.py)$",

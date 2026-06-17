@@ -34,13 +34,16 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Cache Poetry dependencies
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache UV dependencies
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-poetry-v2-${{ hashFiles('**/poetry.lock', '**/pyproject.toml') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock', '**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-v2-
+            ${{ runner.os }}-uv-
 
       - name: Install SWI-Prolog
         run: |
@@ -61,27 +64,15 @@ jobs:
           echo "SWI_HOME_DIR: $SWIPL_HOME"
           echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          poetry --version
-
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
-
       - name: Install Dependencies
         run: |
-          poetry run pip install --upgrade pip
-          poetry run pip install janus-swi==1.5.2
-          poetry install --with docs --verbose
+          uv sync --group docs
 
       - name: Check Documentation Quality
         run: |
           cd docs
-          poetry run doc8 . || echo "Documentation quality check found issues"
-          poetry run sphinx-build -b linkcheck -v . _build/linkcheck || echo "Link check found broken links"
+          uv run doc8 . || echo "Documentation quality check found issues"
+          uv run sphinx-build -b linkcheck -v . _build/linkcheck || echo "Link check found broken links"
         continue-on-error: true
         env:
           PYTHONPATH: ${{ github.workspace }}/src
@@ -90,7 +81,7 @@ jobs:
       - name: Build Documentation
         run: |
           rm -rf docs/_build/html
-          poetry run sphinx-build -b html -v docs docs/_build/html 2>&1
+          uv run sphinx-build -b html -v docs docs/_build/html 2>&1
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           SPHINX_DEBUG: 1

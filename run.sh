@@ -9,15 +9,6 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Ensure 'python' resolves to Python 3 (Poetry 2.x requires it).
-# On some systems Python 2.7 takes precedence on PATH.
-if ! python --version 2>&1 | grep -q "^Python 3"; then
-    _TMPBIN=$(mktemp -d)
-    ln -sf "$(which python3)" "$_TMPBIN/python"
-    export PATH="$_TMPBIN:$PATH"
-    trap "rm -rf '$_TMPBIN'" EXIT
-fi
-
 ######################
 # ENVIRONMENT
 ######################
@@ -25,41 +16,41 @@ fi
 # Install core dependencies
 function install {
     echo "Installing core dependencies..."
-    poetry install --only main
+    uv sync --no-dev
 }
 
 # Install all development dependencies
 function install:dev {
     echo "Installing development dependencies..."
-    poetry install --with dev,test,lint,typing,docs
+    uv sync --all-groups
 }
 
 function install:all {
     echo "Installing all dependencies..."
-    poetry install --with dev,test,lint,typing,docs --no-interaction
+    uv sync --all-groups
 }
 
 # Install specific dependency groups
 function install:test {
     echo "Installing test dependencies..."
-    poetry install --with test
+    uv sync --group test
 }
 
 function install:lint {
     echo "Installing linting dependencies..."
-    poetry install --with lint
+    uv sync --group lint
 }
 
 function install:docs {
     echo "Installing documentation dependencies..."
-    poetry install --with docs
+    uv sync --group docs
 }
 
 
 # Update all dependencies
 function update {
     echo "Updating dependencies..."
-    poetry update
+    uv lock --upgrade && uv sync --all-groups
 }
 
 # Create a new virtual environment
@@ -92,11 +83,16 @@ function venv {
         fi
     fi
 
-    # Ensure clean environment for Poetry (comprehensive cleanup)
+    # Ensure clean environment (comprehensive cleanup)
     unset VIRTUAL_ENV POETRY_ACTIVE PYTHONHOME
 
-    # Force zsh explicitly
-    SHELL=/bin/zsh exec poetry shell
+    # Create venv only if it doesn't exist
+    if [ ! -d ".venv" ]; then
+        uv venv
+    fi
+    source .venv/bin/activate
+    export UV_ACTIVE=1
+    exec "$SHELL"
 }
 
 function venv:clean {
@@ -108,15 +104,15 @@ function venv:clean {
 # Lock dependencies without installing them
 function lock {
     echo "Locking dependencies..."
-    poetry lock
+    uv lock
 }
 
 # Create a new Jupyter kernel for the current project
 function kernel {
     echo "Installing Jupyter kernel..."
-    PYTHON_VERSION=$(poetry run python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    PROJECT_NAME=$(poetry version | cut -d' ' -f1)
-    poetry run python -m ipykernel install --user \
+    PYTHON_VERSION=$(uv run python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    PROJECT_NAME=$(grep -m1 '^name' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+    uv run python -m ipykernel install --user \
         --name="$PROJECT_NAME" \
         --display-name="Python $PYTHON_VERSION ($PROJECT_NAME)"
 }
@@ -124,19 +120,15 @@ function kernel {
 # Remove the Jupyter kernel for the current project
 function remove:kernel {
     echo "Removing Jupyter kernel..."
-    PROJECT_NAME=$(poetry version | cut -d' ' -f1)
-    poetry run jupyter kernelspec remove "$PROJECT_NAME" -y
+    PROJECT_NAME=$(grep -m1 '^name' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+    uv run jupyter kernelspec remove "$PROJECT_NAME" -y
 }
 
 # Export requirements.txt files
 function requirements {
     echo "Exporting requirements.txt..."
-    if ! poetry export --help >/dev/null 2>&1; then
-        echo "Installing poetry-plugin-export..."
-        poetry self add poetry-plugin-export
-    fi
-    poetry export -f requirements.txt --output requirements.txt --without-hashes
-    poetry export -f requirements.txt --with dev,test,lint,typing,docs --output requirements-dev.txt --without-hashes
+    uv export --no-hashes --no-dev -o requirements.txt
+    uv export --no-hashes --all-groups -o requirements-dev.txt
     echo "Requirements files created successfully"
 }
 
@@ -165,7 +157,7 @@ function lint:mypy {
 
     if [ ! -z "$PYTHON_FILES" ]; then
         mkdir -p "$MYPY_CACHE"
-        poetry run mypy $PYTHON_FILES --cache-dir "$MYPY_CACHE"
+        uv run mypy $PYTHON_FILES --cache-dir "$MYPY_CACHE"
     else
         echo "No Python files to check with mypy."
     fi
@@ -176,7 +168,7 @@ function lint:flake8 {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run flake8 $PYTHON_FILES
+        uv run flake8 $PYTHON_FILES
     else
         echo "No Python files to check with flake8."
     fi
@@ -187,7 +179,7 @@ function lint:pylint {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run pylint $PYTHON_FILES
+        uv run pylint $PYTHON_FILES
     else
         echo "No Python files to check with pylint."
     fi
@@ -212,7 +204,7 @@ function lint:diff {
     # pyproject.toml) when files are passed positionally. Read the mypy
     # exclude regex from pyproject.toml so `make pre-commit` matches the
     # `make check` semantics (which only lints ./src/langchain_prolog/).
-    EXCLUDE_REGEX=$(poetry run python -c '
+    EXCLUDE_REGEX=$(uv run --no-sync python -c '
 import sys
 try:
     import tomllib
@@ -255,7 +247,7 @@ function format:black {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run black $PYTHON_FILES
+        uv run black $PYTHON_FILES
     else
         echo "No Python files to format with black."
     fi
@@ -266,7 +258,7 @@ function format:isort {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run isort $PYTHON_FILES
+        uv run isort $PYTHON_FILES
     else
         echo "No Python files to format with isort."
     fi
@@ -278,7 +270,7 @@ function format:check:black {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run black --check --diff $PYTHON_FILES
+        uv run black --check --diff $PYTHON_FILES
     else
         echo "No Python files to check with black."
     fi
@@ -289,7 +281,7 @@ function format:check:isort {
     PYTHON_FILES="${1:-$(get:python:files)}"
 
     if [ ! -z "$PYTHON_FILES" ]; then
-        poetry run isort --check-only --diff $PYTHON_FILES
+        uv run isort --check-only --diff $PYTHON_FILES
     else
         echo "No Python files to check with isort."
     fi
@@ -360,7 +352,7 @@ function tests {
     echo "Running tests..."
     TEST_FILE="${1:-$(get:python:files:tests)}"
     shift || true
-    poetry run pytest "$TEST_FILE" "$@"
+    uv run pytest "$TEST_FILE" "$@"
 }
 
 # Run tests with coverage
@@ -368,7 +360,7 @@ function tests:cov {
     echo "Running tests with coverage..."
     TEST_FILE="${1:-$(get:python:files:tests)}"
     shift || true
-    poetry run pytest "$TEST_FILE" --cov=langchain_prolog --cov-report=term "$@"
+    uv run pytest "$TEST_FILE" --cov=langchain_prolog --cov-report=term "$@"
 }
 
 # Run tests in verbose mode
@@ -376,7 +368,7 @@ function tests:verbose {
     echo "Running tests in verbose mode..."
     TEST_FILE="${1:-$(get:python:files:tests)}"
     shift || true
-    poetry run pytest "$TEST_FILE" -v "$@"
+    uv run pytest "$TEST_FILE" -v "$@"
 }
 
 # Run tests that match a specific pattern
@@ -388,7 +380,7 @@ function tests:pattern {
     PATTERN="$1"
     TEST_FILE="${2:-$(get:python:files:tests)}"
     echo "Running tests matching pattern $PATTERN..."
-    poetry run pytest "$TEST_FILE" -k "$PATTERN"
+    uv run pytest "$TEST_FILE" -k "$PATTERN"
 }
 
 # Run a specific test file
@@ -400,14 +392,14 @@ function tests:file {
     FILE="$1"
     shift
     echo "Running tests from file $FILE..."
-    poetry run pytest "$FILE" "$@"
+    uv run pytest "$FILE" "$@"
 }
 
 # Generate coverage report
 function coverage {
     echo "Generating coverage report..."
-    poetry run coverage report
-    poetry run coverage html
+    uv run coverage report
+    uv run coverage html
     echo "HTML coverage report generated in htmlcov/"
 }
 
@@ -436,7 +428,7 @@ function help:test {
     echo 'Specialized test functions:'
     echo '  tests:verbose            Run tests with verbose output'
     echo '  tests:cov                Run tests with coverage report'
-    echo '  tests:pattern <pattern>  Run test files matching pattern'
+    echo '  tests:pattern <pattern>  Run tests matching pattern'
     echo '  tests:file <file>        Run tests in specific file'
 }
 
@@ -447,33 +439,33 @@ function help:test {
 # Generate API documentation automatically
 function docs:api {
     echo "Generating API documentation..."
-    cd docs && poetry run sphinx-apidoc -o api ../src/langchain_prolog -f
+    cd docs && uv run sphinx-apidoc -o api ../src/langchain_prolog -f
 }
 
 # Generate documentation
 function docs {
     echo "Building documentation..."
-    cd docs && poetry run make html
+    cd docs && uv run make html
     echo "Documentation built in docs/_build/html/"
 }
 
 # Live documentation server
 function docs:live {
     echo "Starting live documentation server..."
-    poetry run sphinx-autobuild docs docs/_build/html --open-browser
+    uv run sphinx-autobuild docs docs/_build/html --open-browser
 }
 
 # Check documentation quality
 function docs:check {
     echo "Checking documentation quality..."
-    poetry run doc8 docs/
-    cd docs && poetry run make linkcheck
+    uv run doc8 docs/
+    cd docs && uv run make linkcheck
 }
 
 # Clean and rebuild documentation
 function docs:clean {
     echo "Cleaning documentation build files..."
-    cd docs && poetry run make clean && poetry run make html
+    cd docs && uv run make clean && uv run make html
 }
 
 ######################
@@ -536,7 +528,7 @@ config_get() {
 function build {
     echo "Building package..."
     clean
-    poetry build
+    uv build
 }
 
 # Publish to TestPyPI, non strictly requiring token
@@ -546,12 +538,10 @@ function publish:test {
     local token
     token="$(config_get TEST_PYPI_TOKEN)" || true
 
-    poetry config repositories.testpypi https://test.pypi.org/legacy/
-
     if [[ -n "$token" ]]; then
-        POETRY_PYPI_TOKEN_TESTPYPI="$token" poetry publish -r testpypi
+        UV_PUBLISH_TOKEN="$token" uv publish --publish-url https://test.pypi.org/legacy/
     else
-        poetry publish -r testpypi
+        uv publish --publish-url https://test.pypi.org/legacy/
     fi
 }
 
@@ -570,8 +560,7 @@ function publish:test:strict {
         return 1
     }
 
-    poetry config repositories.testpypi https://test.pypi.org/legacy/
-    POETRY_PYPI_TOKEN_TESTPYPI="$token" poetry publish -r testpypi
+    UV_PUBLISH_TOKEN="$token" uv publish --publish-url https://test.pypi.org/legacy/
 }
 
 # Publish to PyPI, non strictly requiring token
@@ -582,9 +571,9 @@ function publish {
     token="$(config_get PYPI_TOKEN)" || true
 
     if [[ -n "$token" ]]; then
-        POETRY_PYPI_TOKEN_PYPI="$token" poetry publish
+        UV_PUBLISH_TOKEN="$token" uv publish
     else
-        poetry publish
+        uv publish
     fi
 }
 
@@ -603,14 +592,14 @@ function publish:strict {
         return 1
     }
 
-    POETRY_PYPI_TOKEN_PYPI="$token" poetry publish
+    UV_PUBLISH_TOKEN="$token" uv publish
 }
 
 # Validate that package builds correctly
 function validate:build {
     echo "Validating build..."
     build
-    poetry run pip install --force-reinstall dist/*.whl
+    uv pip install --force-reinstall dist/*.whl
     echo "Package installed successfully"
 }
 
@@ -778,9 +767,7 @@ function help {
     echo "  clean                - Clean build artifacts"
     echo "  build                - Build package"
     echo "  publish:test         - Publish to TestPyPI"
-    echo "  publish:test:strict  - Publish to TestPyPI (strict token mode)"
     echo "  publish              - Publish to PyPI"
-    echo "  publish:strict       - Publish to PyPI (strict token mode)"
     echo "  validate:build       - Validate build"
     echo ""
     echo "Release:"

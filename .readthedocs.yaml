@@ -5,11 +5,13 @@ build:
   tools:
     python: "3.10"
   commands:
-    - pip install poetry
-    - poetry config virtualenvs.create false
-    - poetry install --only docs --no-interaction
-    # Install safe dependencies manually (needed for imports) but no janus_swi
-    - pip install pydantic langchain
-    # Install your package without dependencies
-    - pip install --no-deps -e .
-    - python -m sphinx -T -b html -d _build/doctrees -D language=en docs $READTHEDOCS_OUTPUT/html
+    - pip install uv
+    # Install only the docs group; do NOT pull main runtime deps (which include
+    # janus-swi, which cannot build on Read the Docs since SWI-Prolog isn't
+    # installed there).
+    - uv sync --only-group docs --no-install-project
+    # Install safe dependencies manually (needed by autodoc imports) but not janus_swi
+    - uv pip install pydantic langchain langchain-core
+    # Install the project without its dependencies
+    - uv pip install --no-deps -e .
+    - uv run --no-sync python -m sphinx -T -b html -d _build/doctrees -D language=en docs $READTHEDOCS_OUTPUT/html

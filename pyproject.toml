@@ -1,44 +1,87 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "langchain-prolog"
 version = "1.0.0"
 description = "An integration package connecting Prolog and LangChain"
-authors = ["Antonio Pisani"]
+authors = [{ name = "Antonio Pisani" }]
+requires-python = ">=3.10,<4.0"
 readme = "README.md"
-repository = "https://github.com/apisani1/langchain-prolog"
 license = "MIT"
-packages = [{ include = "langchain_prolog", from = "src" }]
-keywords = ["langchain", "prolog", "swi-prolog", "llm", "agent"]
+keywords = [
+    "langchain",
+    "prolog",
+    "swi-prolog",
+    "llm",
+    "agent",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Prolog",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-include = [
-    { path = "src/langchain_prolog/*.pl", format = "sdist" },
-    { path = "src/langchain_prolog/*.pl", format = "wheel" },
+dependencies = [
+    "langchain>=1.3.9,<2",
+    "langchain-core>=1.4.6,<2",
+    "janus-swi>=1.5.2,<2",
+    "pydantic>=2.7.4,<3",
 ]
 
-[tool.poetry.urls]
+[project.urls]
 "Source Code" = "https://github.com/apisani1/langchain-prolog"
 "Release Notes" = "https://github.com/apisani1/langchain-prolog/releases"
 "Documentation" = "https://langchain-prolog.readthedocs.io/"
 "Issue Tracker" = "https://github.com/apisani1/langchain-prolog/issues"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-langchain = "^1.3.9"
-langchain-core = "^1.4.6"
-janus-swi = "^1.5.2"
-pydantic = "^2.7.4"
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5,<7",
+    "python-dotenv>=1.1.0,<2",
+]
+test = [
+    "pytest>=7.4.0,<8",
+    "pytest-asyncio>=0.21.0,<0.22",
+    "pytest-cov>=6.1.0,<7",
+]
+lint = [
+    "flake8>=7.1.0,<8",
+    "flake8-pyproject>=1.2.0,<2",
+    "pylint>=3.3.0,<4",
+    "black>=25.1.0,<26",
+    "isort>=6.0.0,<7",
+]
+typing = ["mypy>=1.15,<2"]
+docs = [
+    "sphinx>=8.1.3,<9",
+    "sphinx-rtd-theme>=3.0.2,<4",
+    "myst-parser>=4.0.0,<5",
+    "sphinx-copybutton>=0.5.2,<0.6",
+    "sphinx-autobuild>=2021.3.14,<2022",
+    "sphinx-sitemap>=2.6.0,<3",
+    "sphinx-tabs>=3.4.7,<4",
+    "doc8>=0.8.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/langchain_prolog"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"src/langchain_prolog/consult_ex.pl" = "src/langchain_prolog/consult_ex.pl"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/langchain_prolog"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/langchain_prolog/consult_ex.pl" = "src/langchain_prolog/consult_ex.pl"
 
 [tool.semantic_release]
 version_variable = [
@@ -49,12 +92,13 @@ version_variable = [
 branch = "main"
 upload_to_pypi = false
 upload_to_release = true
-build_command = "poetry build"
+build_command = "uv build"
 
 [tool.coverage.run]
 omit = ["tests/*"]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 addopts = "--strict-markers --strict-config --durations=5"
 markers = [
     "compile: mark placeholder test used to compile integration tests without running them",
@@ -62,50 +106,6 @@ markers = [
     "requires_prolog: mark tests that require SWI-Prolog",
 ]
 asyncio_mode = "auto"
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-python-dotenv = "^1.1.0"
-
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.0"
-pytest-cov = "^6.1.0"
-
-[tool.poetry.group.lint]
-optional = true
-
-[tool.poetry.group.lint.dependencies]
-flake8 = "^7.1.0"
-flake8-pyproject = "^1.2.0"
-pylint = "^3.3.0"
-black = "^25.1.0"
-isort = "^6.0.0"
-
-[tool.poetry.group.typing]
-optional = true
-
-[tool.poetry.group.typing.dependencies]
-mypy = "^1.15"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^8.1.3"
-sphinx-rtd-theme = "^3.0.2"
-myst-parser = "^4.0.0"
-sphinx-copybutton = "^0.5.2"
-sphinx-autobuild = "^2021.3.14"
-sphinx-sitemap = "^2.6.0"
-sphinx-tabs = "^3.4.7"
-doc8 = ">=0.8.0"
 
 [tool.black]
 line-length = 119
@@ -179,9 +179,21 @@ disable = [
     "import-outside-toplevel",
     "global-statement",
     "global-variable-not-assigned",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "too-many-locals",
+    "too-many-statements",
+    "too-many-branches",
+    "too-many-return-statements",
+    "too-many-instance-attributes",
+    "unnecessary-dunder-call",
+    "duplicate-code",
+    "line-too-long",
 ]
+
 [tool.pylint.MASTER]
-ignore = ["tests", "scripts", "docs", "__pycache__", ".venv", "build", "dist"]
+ignore = ["tests", "scripts", "docs", ".venv", ".git", "__pycache__", "build", "dist"]
 
 [tool.pylint.FORMAT]
 max-line-length = 119
@@ -222,6 +234,7 @@ known_third_party = [
     "langchain_openai",
     "janus_swi",
 ]
+known_first_party = ["langchain_prolog"]
 force_single_line = false
 multi_line_output = 3
 force_grid_wrap = 2
@@ -232,7 +245,7 @@ ensure_newline_before_comments = true
 line_length = 119
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 default_section = "FIRSTPARTY"
-extend_skip = ["tests", "docs", "__pycache__", ".venv", "build", "dist"]
+extend_skip = ["tests", "docs", ".venv", ".git", "__pycache__", "build", "dist"]
 
 [tool.doc8]
 max-line-length = 120

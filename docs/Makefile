@@ -3,7 +3,7 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= poetry run sphinx-build
+SPHINXBUILD   ?= uv run sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 PACKAGEDIR    = ../src/langchain_prolog
@@ -16,12 +16,12 @@ help:
 
 # Custom target for generating API documentation
 apidoc:
-	poetry run sphinx-apidoc -o api $(PACKAGEDIR) -f
+	uv run sphinx-apidoc -o api $(PACKAGEDIR) -f
 	@echo "API documentation generated. Don't forget to include 'api/modules' in your index.rst."
 
 # Live documentation server with auto-reload
 livehtml:
-	poetry run sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)/html" --open-browser $(SPHINXOPTS) $(O)
+	uv run sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)/html" --open-browser $(SPHINXOPTS) $(O)
 
 # Open built documentation in browser
 open:

@@ -36,23 +36,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Cache Poetry dependencies
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache UV dependencies
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-poetry-v2-${{ hashFiles('**/poetry.lock', '**/pyproject.toml') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock', '**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-v2-
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          poetry --version
-
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
+            ${{ runner.os }}-uv-
 
       - name: Determine release type and latest status
         id: release-info
@@ -145,7 +138,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$SWIPL_HOME/lib/$ARCH-linux:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
           # Install package from TestPyPI (pin exact version to avoid picking up older TestPyPI uploads)
-          pip install "langchain>=0.3.0"
+          pip install "langchain>=1.3.9"
           pip install --index-url https://test.pypi.org/simple/ \
               --extra-index-url https://pypi.org/simple \
               "langchain-prolog==${{ steps.release-info.outputs.version }}"

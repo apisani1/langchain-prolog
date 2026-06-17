@@ -89,13 +89,13 @@ All tests require SWI-Prolog installation and use the `@pytest.mark.requires_pro
 
 ## Development Workflow
 
-The project uses Poetry for dependency management with multiple optional dependency groups:
+The project uses UV for dependency management with multiple dependency groups:
 - `test`: pytest and testing utilities
 - `lint`: black, isort, flake8, pylint, mypy
 - `docs`: Sphinx and documentation tools
 - `typing`: mypy type checking
 
-Use `poetry add <pkg>` to add dependencies and `poetry install` to install from lockfile. Avoid using `pip install` directly.
+Use `uv add <pkg>` to add dependencies and `uv sync` to install from lockfile. Avoid using `pip install` directly.
 
 ## Code Style
 
