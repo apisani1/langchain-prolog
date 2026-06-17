@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.1] - 2026-06-17
+
+### Changed
+
+- **Build backend**: migrated from Poetry (`poetry-core`) to Hatchling (`hatchling`). `pyproject.toml` now uses PEP 517 standard `[project]` / `[dependency-groups]` tables. `uv.lock` replaces `poetry.lock`.
+- **Minimum dependency floors raised**: `langchain >= 1.3.9` (was `>= 0.3.0`), `pydantic >= 2.7.4` (was `>= 2.0.0`). The library already required langchain 1.x in practice; these floors reflect that.
+- Python 3.12 and 3.13 added to `classifiers` in `pyproject.toml`.
+- LangGraph agent example removed from `README.md` and `docs/source/tool.md`; documentation now describes two usage patterns (function-calling and direct runnable invocation) instead of three.
+- Updated version prerequisites in docs and README: `langchain >= 1.3.0`, `pydantic >= 2.7.0`.
+
+### Fixed
+
+- All CI workflows (`tests.yml`, `release.yml`, `docs.yml`) updated to install and use UV (`astral-sh/setup-uv@v5`) instead of Poetry.
+- `run.sh` and `Makefile` updated throughout to invoke `uv` / `uv run` instead of `poetry` / `poetry run`.
+
+### Security
+
+- `docs/requirements.txt`: pinned `tornado >= 6.5.7` per Snyk CVE advisory (PR #3). Affects documentation builds only.
+
+### Documentation
+
+- PyPI badge URL updated to version-keyed cache-busted format.
+- Example notebooks refreshed for the langchain 1.x API.
+
 ## [1.0.0] - 2026-06-16
 
 ### Breaking Changes
