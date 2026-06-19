@@ -1,28 +1,31 @@
-# langchain-prolog 1.0.1
+# langchain-prolog 1.0.2
 
-This is a maintenance release with no changes to the `PrologConfig`, `PrologRunnable`, or `PrologTool` APIs. The highlights are a full migration from Poetry to UV and a tightening of the minimum dependency floors to match what the library already required in practice.
+Tooling-only maintenance release. No changes to `PrologConfig`, `PrologRunnable`, or `PrologTool` APIs.
 
-## Build tooling: Poetry → UV
+## Internal
 
-`pyproject.toml` has been migrated from Poetry (`poetry-core` build backend, `[tool.poetry.*]` tables) to the standard PEP 517 layout with Hatchling as the build backend and UV as the package manager. `uv.lock` replaces `poetry.lock`. All CI workflows (`tests.yml`, `release.yml`, `docs.yml`), `run.sh`, and `Makefile` have been updated accordingly.
+### Makefile / run.sh — extra flags now flow through all release targets
 
-If you contribute to this project, replace `poetry install` / `poetry run` invocations with `uv sync` / `uv run`.
+All `make release-*` and `rollback` targets now accept additional arguments via `ARGS ?=`:
 
-## Dependency floor changes
+```bash
+make release-micro ARGS="--no-interactive"
+```
 
-| Package | Before | After |
-|---------|--------|-------|
-| `langchain` | `>= 0.3.0` | `>= 1.3.9` |
-| `pydantic` | `>= 2.0.0` | `>= 2.7.4` |
+The same flags are forwarded when calling `run.sh` functions directly (`"$@"` passthrough).
 
-The library already depended on langchain 1.x behavior in practice; the floors now reflect that. No caller-side code changes are required.
+### release.yml — more reliable ReadTheDocs update
 
-## Other changes
+The ReadTheDocs CI step now:
 
-- Python 3.12 and 3.13 added to supported-versions classifiers.
-- LangGraph agent usage example removed from `README.md` and docs — documentation now covers two patterns (function-calling via an LLM and direct `PrologRunnable` invocation).
-- **Security**: `docs/requirements.txt` pins `tornado >= 6.5.7` per a Snyk CVE advisory (PR #3). This affects documentation builds only, not library consumers.
-- Example notebooks refreshed for the langchain 1.x API.
+- Syncs RTD versions before activating the new tag (so newly-created version slugs are visible)
+- Triggers explicit builds for both the tagged version and `latest`
+- Uses an HTTP `2xx` regex check instead of an exact `204` match (more permissive and correct)
+- Reports success/warning conditionally in the Release Summary via `id: update-rtd`
+
+### README.md
+
+Removed a stale hardcoded version badge that was left over from an earlier release.
 
 ## Full changelog
 

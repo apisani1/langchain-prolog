@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2] - 2026-06-19
+
+### Internal
+
+- **Makefile**: add `ARGS ?=` variable and pass `$(ARGS)` to all `release-*` and `rollback` targets, enabling e.g. `make release-micro ARGS="--no-interactive"`.
+- **run.sh**: forward `"$@"` through all release and rollback functions so extra flags propagate from Makefile or direct shell calls.
+- **release.yml** (ReadTheDocs step): add version sync before activation, trigger explicit builds for both the new tag version and `latest`, switch HTTP success check from exact `204` to `^2` regex, and add `id: update-rtd` for conditional success/warning output in Release Summary.
+- **README.md**: remove stale hardcoded version badge.
+
 ## [1.0.1] - 2026-06-17
 
 ### Changed
