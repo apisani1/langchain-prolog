@@ -869,7 +869,7 @@ wheels = [
 
 [[package]]
 name = "langchain-prolog"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "janus-swi" },

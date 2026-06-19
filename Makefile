@@ -238,55 +238,57 @@ validate-build:
 # RELEASE
 ######################
 
+ARGS ?=
+
 # Release versions
 release-major:
-	@./run.sh release:major
+	@./run.sh release:major $(ARGS)
 
 release-minor:
-	@./run.sh release:minor
+	@./run.sh release:minor $(ARGS)
 
 release-micro:
-	@./run.sh release:micro
+	@./run.sh release:micro $(ARGS)
 
 release-rc:
-	@./run.sh release:rc
+	@./run.sh release:rc $(ARGS)
 
 release-beta:
-	@./run.sh release:beta
+	@./run.sh release:beta $(ARGS)
 
 release-alpha:
-	@./run.sh release:alpha
+	@./run.sh release:alpha $(ARGS)
 
 release-major-a:
-	@./run.sh release:major:a
+	@./run.sh release:major:a $(ARGS)
 
 release-major-b:
-	@./run.sh release:major:b
+	@./run.sh release:major:b $(ARGS)
 
 release-major-rc:
-	@./run.sh release:major:rc
+	@./run.sh release:major:rc $(ARGS)
 
 release-minor-a:
-	@./run.sh release:minor:a
+	@./run.sh release:minor:a $(ARGS)
 
 release-minor-b:
-	@./run.sh release:minor:b
+	@./run.sh release:minor:b $(ARGS)
 
 release-minor-rc:
-	@./run.sh release:minor:rc
+	@./run.sh release:minor:rc $(ARGS)
 
 release-micro-a:
-	@./run.sh release:micro:a
+	@./run.sh release:micro:a $(ARGS)
 
 release-micro-b:
-	@./run.sh release:micro:b
+	@./run.sh release:micro:b $(ARGS)
 
 release-micro-rc:
-	@./run.sh release:micro:rc
+	@./run.sh release:micro:rc $(ARGS)
 
 # Rollback release
 rollback:
-	@./run.sh rollback
+	@./run.sh rollback $(ARGS)
 
 # Helper target to show available release commands
 help-release:

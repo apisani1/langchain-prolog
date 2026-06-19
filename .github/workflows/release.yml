@@ -177,26 +177,57 @@ jobs:
 
       # Update ReadTheDocs for all tagged versions
       # Note: Set RTD default version to "stable" in project settings for best UX
+      # Update ReadTheDocs for all tagged versions
+      # Note: Set RTD default version to "stable" in project settings for best UX
       - name: Update ReadTheDocs
+        id: update-rtd
         run: |
           TAG_NAME=${{ steps.release-info.outputs.tag_name }}
+          RTD_PROJECT="langchain-prolog"
+
+          echo "Syncing ReadTheDocs versions..."
+          SYNC_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://readthedocs.org/api/v3/projects/$RTD_PROJECT/sync/")
+          if [[ ! "$SYNC_RESPONSE" =~ ^2 ]]; then
+            echo "::warning::Failed to sync ReadTheDocs versions (HTTP $SYNC_RESPONSE)"
+            exit 1
+          fi
+
+          echo "Waiting for sync to complete..."
+          sleep 20
+
           echo "Activating version $TAG_NAME via API..."
           for i in 1 2 3 4 5; do
             RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
               -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d '{"active": true}' \
-              "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/$TAG_NAME/")
-            if [ "$RESPONSE" = "204" ]; then
+              "https://readthedocs.org/api/v3/projects/$RTD_PROJECT/versions/$TAG_NAME/")
+            if [[ "$RESPONSE" =~ ^2 ]]; then
               echo "Successfully activated version $TAG_NAME"
               break
             fi
             echo "Attempt $i: RTD returned HTTP $RESPONSE, retrying in 15s..."
             sleep 15
           done
-          if [ "$RESPONSE" != "204" ]; then
-            echo "Warning: Failed to activate $TAG_NAME after 5 attempts (last HTTP $RESPONSE)"
+          if [[ ! "$RESPONSE" =~ ^2 ]]; then
+            echo "::warning::Failed to activate $TAG_NAME after 5 attempts (last HTTP $RESPONSE)"
+            exit 1
           fi
+
+          for RTD_VERSION in "$TAG_NAME" latest; do
+            echo "Triggering ReadTheDocs build for $RTD_VERSION..."
+            BUILD_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "https://readthedocs.org/api/v3/projects/$RTD_PROJECT/versions/$RTD_VERSION/builds/")
+            if [[ ! "$BUILD_RESPONSE" =~ ^2 ]]; then
+              echo "::warning::Failed to trigger ReadTheDocs build for $RTD_VERSION (HTTP $BUILD_RESPONSE)"
+              exit 1
+            fi
+          done
         continue-on-error: true
 
       - name: Release Summary
@@ -205,7 +236,11 @@ jobs:
           echo "- **Version**: ${{ steps.release-info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Type**: ${{ steps.release-info.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Latest**: ${{ steps.release-info.outputs.is_latest }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **ReadTheDocs**: ✅ Updated" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.update-rtd.outcome }}" == "success" ]]; then
+            echo "- **ReadTheDocs**: ✅ Synced and triggered ${{ steps.release-info.outputs.tag_name }} + latest builds" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **ReadTheDocs**: ⚠️ Update attempted; check workflow warnings" >> $GITHUB_STEP_SUMMARY
+          fi
           if [[ "${{ steps.release-info.outputs.release_type }}" == "release" ]]; then
             echo "- **PyPI**: ✅ Published" >> $GITHUB_STEP_SUMMARY
           else

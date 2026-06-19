@@ -610,83 +610,83 @@ function validate:build {
 # Release versions
 function release:major {
     echo "Creating major release..."
-    python3 scripts/release.py create major --release-docs
+    python3 scripts/release.py create major --release-docs "$@"
 }
 
 function release:minor {
     echo "Creating minor release..."
-    python3 scripts/release.py create minor --release-docs
+    python3 scripts/release.py create minor --release-docs "$@"
 }
 
 function release:micro {
     echo "Creating micro release..."
-    python3 scripts/release.py create micro --release-docs
+    python3 scripts/release.py create micro --release-docs "$@"
 }
 
 function release:rc {
     echo "Creating release candidate..."
-    python3 scripts/release.py create micro --pre rc --release-docs
+    python3 scripts/release.py create micro --pre rc --release-docs "$@"
 }
 
 function release:beta {
     echo "Creating beta release..."
-    python3 scripts/release.py create micro --pre b --release-docs
+    python3 scripts/release.py create micro --pre b --release-docs "$@"
 }
 
 function release:alpha {
     echo "Creating alpha release..."
-    python3 scripts/release.py create micro --pre a --release-docs
+    python3 scripts/release.py create micro --pre a --release-docs "$@"
 }
 
 function release:major:a {
     echo "Creating major alpha release..."
-    python3 scripts/release.py create major --pre a --release-docs
+    python3 scripts/release.py create major --pre a --release-docs "$@"
 }
 
 function release:major:b {
     echo "Creating major beta release..."
-    python3 scripts/release.py create major --pre b --release-docs
+    python3 scripts/release.py create major --pre b --release-docs "$@"
 }
 
 function release:major:rc {
     echo "Creating major release candidate..."
-    python3 scripts/release.py create major --pre rc --release-docs
+    python3 scripts/release.py create major --pre rc --release-docs "$@"
 }
 
 function release:minor:a {
     echo "Creating minor alpha release..."
-    python3 scripts/release.py create minor --pre a --release-docs
+    python3 scripts/release.py create minor --pre a --release-docs "$@"
 }
 
 function release:minor:b {
     echo "Creating minor beta release..."
-    python3 scripts/release.py create minor --pre b --release-docs
+    python3 scripts/release.py create minor --pre b --release-docs "$@"
 }
 
 function release:minor:rc {
     echo "Creating minor release candidate..."
-    python3 scripts/release.py create minor --pre rc --release-docs
+    python3 scripts/release.py create minor --pre rc --release-docs "$@"
 }
 
 function release:micro:a {
     echo "Creating micro alpha release..."
-    python3 scripts/release.py create micro --pre a --release-docs
+    python3 scripts/release.py create micro --pre a --release-docs "$@"
 }
 
 function release:micro:b {
     echo "Creating micro beta release..."
-    python3 scripts/release.py create micro --pre b --release-docs
+    python3 scripts/release.py create micro --pre b --release-docs "$@"
 }
 
 function release:micro:rc {
     echo "Creating micro release candidate..."
-    python3 scripts/release.py create micro --pre rc --release-docs
+    python3 scripts/release.py create micro --pre rc --release-docs "$@"
 }
 
 # Rollback release
 function rollback {
     echo "Rolling back last release..."
-    python3 scripts/release.py rollback
+    python3 scripts/release.py rollback "$@"
 }
 
 # Helper function to show available release commands
