@@ -177,8 +177,6 @@ jobs:
 
       # Update ReadTheDocs for all tagged versions
       # Note: Set RTD default version to "stable" in project settings for best UX
-      # Update ReadTheDocs for all tagged versions
-      # Note: Set RTD default version to "stable" in project settings for best UX
       - name: Update ReadTheDocs
         id: update-rtd
         run: |
