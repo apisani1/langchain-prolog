@@ -88,8 +88,6 @@ version_variable = [
     "pyproject.toml:version",
     "src/langchain_prolog/__version__.py:__version__",
     "docs/conf.py:release",
-    "README.md:v",
-    "docs/source/badges.md:v",
 ]
 branch = "main"
 upload_to_pypi = false
