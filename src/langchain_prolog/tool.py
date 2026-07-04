@@ -21,7 +21,7 @@ from pydantic import (
     Field,
 )
 
-from langchain_prolog import (
+from langchain_prolog.runnable import (
     PrologConfig,
     PrologInput,
     PrologRunnable,
@@ -95,7 +95,7 @@ class PrologTool(Tool):
             return tuple(all_args), {}
         return (kwargs,), {}
 
-    def run(  # type: ignore[override]
+    def run(  # type: ignore[override]  # pylint: disable=arguments-differ
         self,
         tool_input: PrologInput,
         **kwargs: Any,
