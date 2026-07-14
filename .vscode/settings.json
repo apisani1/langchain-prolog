@@ -143,12 +143,7 @@
     "python.testing.pytestArgs": [
         "tests"
     ],
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.mypyEnabled": true,
     "python.formatting.provider": "black",
-    "python.linting.lintOnSave": true,
     "prolog.executablePath": "/opt/homebrew/bin/swipl",
     "prolog.dialect": "swi",
     "prolog.format.enabled": true,
@@ -171,7 +166,6 @@
         "--line-length=119"
     ],
     "flake8.importStrategy": "fromEnvironment",
-    "flake8.path": ["uv", "run", "flake8"],
     "flake8.ignorePatterns": [
         "${workspaceFolder}/docs/*.py",
         "${workspaceFolder}/tests/test*.py",
@@ -195,10 +189,8 @@
     "notebook.diff.ignoreOutputs": true,
     "makefile.configureOnOpen": false,
     "pylint.enabled": true,
-    "pylint.path": [
-        "uv", "run", "pylint"
-    ],
+    "pylint.importStrategy": "fromEnvironment",
     "pylint.args": [
-        "--ignore-paths=^(tests\\/test.*\\.py|scripts\\/.*\\.py|docs\\/.*\\.py)$",
+        "--ignore-paths=(^|.*/)(tests|scripts|docs)/",
     ],
 }

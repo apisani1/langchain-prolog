@@ -144,7 +144,7 @@ radon-max-cc = 15
 max-line-length = 119
 
 [tool.mypy]
-exclude = '^(tests\/test.*\.py|scripts\/.*\.py|docs\/.*\.py)$'
+exclude = '^(tests|scripts|docs)/'
 python_version = "3.10"
 warn_unused_configs = true
 disallow_untyped_defs = true
