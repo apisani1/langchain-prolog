@@ -57,6 +57,9 @@ function update {
 function venv {
     echo "Creating virtual environment..."
 
+    # Always operate on this checkout's venv, not the caller's cwd (matters for git worktrees)
+    cd "$THIS_DIR"
+
     # Manually deactivate conda environment if active
     if [ -n "$CONDA_DEFAULT_ENV" ]; then
         echo "Deactivating conda environment: $CONDA_DEFAULT_ENV"
@@ -72,26 +75,43 @@ function venv {
     # Manually deactivate regular virtual environment if active
     if [ -n "$VIRTUAL_ENV" ]; then
         echo "Deactivating virtual environment: $(basename "$VIRTUAL_ENV")"
-        # Clean all venv-related variables
-        unset VIRTUAL_ENV PYTHONHOME
-        # Restore original PATH (remove venv paths)
+        # Restore original PATH captured when that venv was activated
         if [ -n "$_OLD_VIRTUAL_PATH" ]; then
             export PATH="$_OLD_VIRTUAL_PATH"
-        else
-            # Fallback: try to remove common venv path patterns
-            export PATH=$(echo "$PATH" | sed -E 's|[^:]*\.venv/bin:||g' | sed -E 's|:[^:]*\.venv/bin||g')
         fi
     fi
 
-    # Ensure clean environment (comprehensive cleanup)
-    unset VIRTUAL_ENV POETRY_ACTIVE PYTHONHOME
+    # Unconditionally drop every venv bin directory from PATH. PATH pollution outlives
+    # VIRTUAL_ENV (it is inherited across exec/process boundaries), and _OLD_VIRTUAL_PATH
+    # can itself restore a PATH that still holds another checkout's venv.
+    export PATH=$(echo "$PATH" | sed -E 's|[^:]*\.venv/bin:||g' | sed -E 's|:[^:]*\.venv/bin||g')
 
-    # Create venv only if it doesn't exist
-    if [ ! -d ".venv" ]; then
+    # Ensure clean environment (comprehensive cleanup)
+    unset VIRTUAL_ENV VIRTUAL_ENV_PROMPT POETRY_ACTIVE PYTHONHOME
+    unset _OLD_VIRTUAL_PATH _OLD_VIRTUAL_PS1 _OLD_VIRTUAL_PYTHONHOME
+
+    # Create the venv if it is missing, or recreate it if it was copied from another checkout.
+    # Tools that clone a repo directory (git worktree helpers) copy .venv along with it, but both
+    # uv and virtualenv hardcode the creating directory's absolute path in bin/activate and in
+    # every console-script shebang. Sourcing such a copy silently activates the ORIGINAL
+    # checkout's environment, so the copy has to go.
+    venv_home=""
+    if [ -f ".venv/bin/activate" ]; then
+        venv_home=$(sed -nE "s/^[[:space:]]*VIRTUAL_ENV=['\"]?(\/[^'\"]*)['\"]?[[:space:]]*$/\1/p" .venv/bin/activate | head -1)
+    fi
+    if [ ! -f ".venv/pyvenv.cfg" ]; then
+        rm -rf .venv
         uv venv
+    elif [ -n "$venv_home" ] && [ "$venv_home" != "$THIS_DIR/.venv" ]; then
+        echo "Existing .venv was created for $venv_home - recreating it for this checkout"
+        rm -rf .venv
+        uv venv
+        echo "NOTE: dependencies are not installed in the new venv - run 'make install-dev'"
     fi
     source .venv/bin/activate
     export UV_ACTIVE=1
+    # Tell the shell we exec into that this directory is already activated
+    export _AUTO_MAKE_VENV_DIR="$THIS_DIR"
     exec "$SHELL"
 }
 
