@@ -1,0 +1,5 @@
+{
+  "archiveScript" : "./run.sh worktree:archive",
+  "deleteScript" : "./run.sh worktree:delete",
+  "setupScript" : "./run.sh worktree:setup"
+}
