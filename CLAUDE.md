@@ -4,55 +4,84 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+This project uses UV for dependency management and a custom `run.sh` script for development tasks. All commands can be executed via either the Makefile (which delegates to `run.sh`) or directly via `run.sh`.
+
 ### Environment Setup
 ```bash
-# Install core dependencies
-make install
-
-# Install all development dependencies  
-make install-dev
-
-# Create virtual environment
-make venv
-```
-
-### Testing
-```bash
-# Run all tests
-make test
-
-# Run tests with coverage
-make test-cov
-
-# Run specific test file
-make test-file f=tests/test_runnable.py
-
-# Run tests matching pattern
-make test-pattern p="async"
+make venv                 # Create and activate local virtual environment
+make install              # Install core dependencies
+make install-lint         # Install linting dependencies
+make install-test         # Install testing dependencies
+make install-docs         # Install documentation dependencies
+make install-dev          # Install all development dependencies (dev, test, lint, typing and docs dependency groups)
+./run.sh install:all      # CI alternative: install all dependencies without interaction
 ```
 
 ### Code Quality
 ```bash
-# Format code
-make format
+make format               # Format code with black and isort
+make format-diff          # Run formatters on changed files
+make lint                 # Run mypy, flake8, and pylint
+make lint-diff             # Run all linters on changed files
+make check                # Run format + lint + tests on all files(local development)
+make pre-commit           # Format and lint only on changed files
+./run.sh check:ci         # CI version (format only checks, no file modifications)
 
-# Run linters
-make lint
-
-# Combined format, lint, and test
-make check
 ```
 
-### Building and Documentation
+### Running
 ```bash
-# Build package
-make build
+make run                  # Run the app, or an example of the library
+make run ARGS="--help"    # Run with arguments
+```
 
-# Generate documentation
-make docs
+`make run` dispatches in order: `scripts/run.sh` if it exists and is executable, then the
+console script entry point if `src/langchain_prolog/main.py` exists, then
+`examples/main.py`. To customize how this project starts, create an executable
+`scripts/run.sh` — that file is not owned by the template, so it survives dev-environment
+syncs. Do not hand-edit the `run` function in `run.sh` or the `run` target in the `Makefile`.
 
-# Live documentation server
-make docs-live
+### Worktree lifecycle
+```bash
+make worktree-setup       # Prepare a freshly created worktree
+make worktree-archive     # Tear down a worktree before archiving
+make worktree-delete      # Guardrail + teardown before deleting a worktree
+```
+
+These back Supacode's `setupScript` / `archiveScript` / `deleteScript` (see `supacode.json`), but
+work standalone too. Each phase runs its generic steps and then `scripts/worktree-<phase>.sh` if
+that file exists and is executable — exit 0 when absent, the hook's exit code when present. Put
+project-specific teardown (stopping docker containers, freeing ports) there; it is not owned by
+the template, so it survives dev-environment syncs.
+
+`worktree-delete` refuses to proceed when the tree is dirty, when commits are reachable from no
+other ref, or when the branch has stash entries — deleting a worktree also deletes its branch, so
+those commits would be lost. Override with `SUPACODE_FORCE_DELETE=1 make worktree-delete`.
+
+### Testing
+```bash
+make test                 # Run all tests
+make test-cov             # Run tests with coverage
+make coverage             # Generate coverage report
+make test-verbose         # Run tests with verbose output
+make test-file f=tests/test_runnable.py    # Run a specific test file
+make test-pattern p="async"                # Run tests matching pattern
+./run.sh tests:pattern "test_name"  # Run only tests matching pattern
+```
+
+### Documentation
+```bash
+make docs-api             # Generate API documentation automatically
+make docs                 # Build Sphinx documentation
+make docs-live            # Start live documentation server with auto-reload
+make docs-clean           # Clean and rebuild documentation
+```
+
+### Package Building
+```bash
+make build                # Build package with UV
+make validate-build       # Validate package builds correctly
+make clean                # Clean build artifacts
 ```
 
 ## Architecture Overview
@@ -105,6 +134,8 @@ Use `uv add <pkg>` to add dependencies and `uv sync` to install from lockfile. A
 - Do not add inline `# noqa` without a specific reason
 
 ## Gotchas
+
+<!-- Tip: Press `#` during a Claude Code session to auto-incorporate session learnings here. -->
 
 - **Release drafts**: `make release-*` → `scripts/release.py create … --release-docs` reads
   `.tmp_release_docs/{commit.txt,tag.txt,changelog.md,release_notes.md}`. A draft is used only if
