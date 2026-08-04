@@ -40,8 +40,9 @@
     "workbench.startupEditor": "none",
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook",
-        "*.md": "vscode.markdown.preview.editor",
+        "*.md": "default",
         "*.svg": "default",
+        "*.copilotmd": "vscode.markdown.preview.editor"
     },
     "workbench.colorTheme": "Dark+",
     "git.enableSmartCommit": true,
