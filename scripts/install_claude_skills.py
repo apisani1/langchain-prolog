@@ -36,6 +36,8 @@ from typing import (
 REPO = "apisani1/generate-project"
 ASSETS_SUBPATH = "src/generate_project/claude_assets"
 MANIFEST_NAME = "asset_manifest.txt"
+# Top-level folders a manifest entry may live under (mirrors the .claude layout).
+ASSET_SUBDIRS = ("skills", "commands")
 
 EPILOG = """
 What Gets Installed:
@@ -63,6 +65,28 @@ Examples:
 def parse_manifest(text: str) -> List[str]:
     """Parse manifest text into relative paths, skipping blank lines and ``#`` comments."""
     return [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+
+
+def safe_target(dest: Path, rel: str) -> Path:
+    """Return ``dest / rel``, refusing manifest entries that could escape ``dest``.
+
+    The manifest may come from the network, so each entry must be a relative POSIX path under
+    ``skills/`` or ``commands/`` with no ``..`` parts, and must resolve inside ``dest``.
+    """
+    parts = rel.split("/")
+    if (
+        not rel
+        or "\\" in rel
+        or rel.startswith("/")
+        or any(part in ("", ".", "..") for part in parts)
+        or Path(rel).is_absolute()
+        or parts[0] not in ASSET_SUBDIRS
+    ):
+        raise ValueError("unsafe asset path in manifest: " + repr(rel))
+    target = dest / rel
+    if not target.resolve().is_relative_to(dest.resolve()):
+        raise ValueError("asset path escapes destination: " + repr(rel))
+    return target
 
 
 def local_assets_dir() -> Optional[Path]:
@@ -119,6 +143,8 @@ def install(dest: Path, force: bool, dry_run: bool, ref: str, assume_yes: bool) 
     items: List[Tuple[str, Optional[Path]]] = []
     if assets_dir is not None:
         rels = parse_manifest((assets_dir / MANIFEST_NAME).read_text())
+        for rel in rels:
+            safe_target(dest, rel)
         items = [(rel, assets_dir / rel) for rel in rels]
         source_desc = "installed generate_project (" + str(assets_dir) + ")"
     else:
@@ -131,6 +157,8 @@ def install(dest: Path, force: bool, dry_run: bool, ref: str, assume_yes: bool) 
             return 1
         rels = parse_manifest(manifest_bytes.decode("utf-8"))
         for rel in rels:
+            safe_target(dest, rel)
+        for rel in rels:
             data = _download(base_url + rel)
             if data is None:
                 return 1
@@ -141,7 +169,7 @@ def install(dest: Path, force: bool, dry_run: bool, ref: str, assume_yes: bool) 
     installed: List[Path] = []
     skipped: List[Path] = []
     for rel, src in items:
-        target = dest / rel
+        target = safe_target(dest, rel)
         if target.exists() and not force:
             skipped.append(target)
             continue

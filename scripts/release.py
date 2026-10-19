@@ -1,8 +1,8 @@
 """Release management script."""
 
+import json
 import logging
 import os
-import pickle
 import re
 import subprocess
 import sys
@@ -82,7 +82,8 @@ RELEASE_DOCS_FILES = {
 class RollbackState:
     """Encapsulates file backup state for release rollback."""
 
-    PICKLE_FILE = ".before_last_release.pkl"
+    # Plain JSON (never a serialized object graph): loading this file must not be able to execute code.
+    STATE_FILE = ".before_last_release.json"
 
     def __init__(self, start_dt: datetime, current_version: Version) -> None:
         self.start_dt = start_dt
@@ -94,10 +95,15 @@ class RollbackState:
         self.files_backup.extend(entries)
 
     def save(self) -> None:
-        """Pickle state to disk for later rollback."""
+        """Write state to disk as JSON for later rollback."""
+        data = {
+            "start_dt": self.start_dt.isoformat(),
+            "current_version": str(self.current_version),
+            "files_backup": [[path, content] for path, content in self.files_backup],
+        }
         try:
-            with open(self.PICKLE_FILE, "wb") as f:
-                pickle.dump(self, f)
+            with open(self.STATE_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f)
             logger.info("Release state saved successfully to allow for rollover.")
         except OSError as e:
             raise RuntimeError(f"Failed to save release state: {e}") from e
@@ -106,14 +112,16 @@ class RollbackState:
     def load(cls) -> "RollbackState":
         """Load previously saved state from disk."""
         try:
-            with open(cls.PICKLE_FILE, "rb") as f:
-                state = pickle.load(f)
-            logger.info("Release state loaded successfully to allow for rollover.")
-            return state
+            with open(cls.STATE_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+            state = cls(datetime.fromisoformat(data["start_dt"]), Version(data["current_version"]))
+            state.files_backup = [(str(path), content) for path, content in data["files_backup"]]
         except FileNotFoundError:
             raise
-        except (OSError, pickle.UnpicklingError) as e:
+        except (OSError, ValueError, KeyError, TypeError, InvalidVersion) as e:
             raise RuntimeError(f"Failed to load release state: {e}") from e
+        logger.info("Release state loaded successfully to allow for rollover.")
+        return state
 
     def restore_files(self) -> None:
         """Restore backed-up files to their original content."""
@@ -128,9 +136,9 @@ class RollbackState:
             file.write_text(original_content)
 
     def cleanup(self) -> None:
-        """Remove the pickle file after successful rollback."""
-        if os.path.exists(self.PICKLE_FILE):
-            os.remove(self.PICKLE_FILE)
+        """Remove the state file after successful rollback."""
+        if os.path.exists(self.STATE_FILE):
+            os.remove(self.STATE_FILE)
 
 
 def regenerate_asset_manifest(state: RollbackState) -> None:

@@ -50,4 +50,5 @@ ENV/
 # Misc
 .DS_Store
 *.pkl
+.before_last_release.json
 *.pickle
