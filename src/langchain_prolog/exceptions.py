@@ -41,6 +41,14 @@ class PrologValueError(LangChainPrologException):
     """Raised when a value error occurs."""
 
 
+class PrologQueryNotAllowedError(PrologRuntimeError):
+    """Raised when a query calls a predicate the query policy does not allow.
+
+    It is a PrologRuntimeError so that code written before the policy existed, which catches that
+    exception for queries that fail, keeps working.
+    """
+
+
 class PrologFileNotFoundError(LangChainPrologException):
     """Raised when a file is not found."""
 

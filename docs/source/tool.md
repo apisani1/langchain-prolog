@@ -4,6 +4,8 @@ The PrologTool class allows the generation of langchain tools that use Prolog ru
 
 See the Runnable Interface section for the conventions on hown to pass variables and values to the Prolog interpreter.
 
+The queries of a tool are written by an LLM, so they are checked before they run: they can call your rules and a set of safe predicates, but not `shell/1`, `assertz/1` and the like. See the Query Safety section.
+
 Let's use the following set of Prolog rules in the file `family.pl`:
 
 ```prolog

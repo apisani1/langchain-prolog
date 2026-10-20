@@ -10,6 +10,7 @@ A Python library that integrates SWI-Prolog with LangChain. It enables seamless 
 - Invoke Prolog predicates from LangChain's LLM models, chains and agents
 - Support for both synchronous and asynchronous operations
 - Comprehensive error handling and logging
+- Queries are checked before they run, so an LLM cannot use a Prolog tool to run shell commands or change the database
 - Cross-platform support (macOS, Linux, Windows)
 
 ## Installation
