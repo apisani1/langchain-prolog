@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.3] - 2026-10-19
+
+### Fixed
+
+- **README / docs badge**: PyPI badge is now static, so it no longer shows a stale cached version. `README.md` and `docs/source/badges.md` are no longer rewritten during version bumps.
+- **run.sh**: activates the worktree's own virtual environment instead of the main repo's.
+
+### Internal
+
+- Synced dev environment with generate-project v2.5.0 (`run.sh`, `Makefile`, `scripts/release.py`, `scripts/install_claude_skills.py`, `CLAUDE.md`, workflows).
+- Added `make run` and `make worktree-setup` / `worktree-archive` / `worktree-delete` targets, plus `supacode.json` lifecycle config.
+- CI: added Claude PR Assistant workflow and Dependabot for GitHub Actions; bumped `actions/checkout` to v7, `actions/cache` to v6.1.0, `astral-sh/setup-uv` to v10.3.0.
+- `tool.py` imports from `langchain_prolog.runnable` directly; removed redundant `pass` statements in `exceptions.py`; resolved pylint warnings; simplified mypy `exclude`.
+
 ## [1.0.2] - 2026-06-19
 
 ### Internal

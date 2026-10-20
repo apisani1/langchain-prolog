@@ -1,32 +1,16 @@
-# langchain-prolog 1.0.2
+## langchain-prolog v1.0.3
 
-Tooling-only maintenance release. No changes to `PrologConfig`, `PrologRunnable`, or `PrologTool` APIs.
+Maintenance release: no changes to the public API or runtime behavior.
 
-## Internal
+### Fixed
 
-### Makefile / run.sh — extra flags now flow through all release targets
+- PyPI badge in the README and docs is now static, so it no longer displays a stale cached version.
+- `run.sh` activates the worktree's own virtual environment.
 
-All `make release-*` and `rollback` targets now accept additional arguments via `ARGS ?=`:
+### Internal
 
-```bash
-make release-micro ARGS="--no-interactive"
-```
+- Dev environment synced with generate-project v2.5.0 (new `make run` and worktree lifecycle targets).
+- CI: Claude PR Assistant workflow, Dependabot for GitHub Actions, and updated `actions/checkout`, `actions/cache`, and `astral-sh/setup-uv`.
+- Minor code cleanups in `tool.py` and `exceptions.py` (import path, redundant `pass`, pylint fixes).
 
-The same flags are forwarded when calling `run.sh` functions directly (`"$@"` passthrough).
-
-### release.yml — more reliable ReadTheDocs update
-
-The ReadTheDocs CI step now:
-
-- Syncs RTD versions before activating the new tag (so newly-created version slugs are visible)
-- Triggers explicit builds for both the tagged version and `latest`
-- Uses an HTTP `2xx` regex check instead of an exact `204` match (more permissive and correct)
-- Reports success/warning conditionally in the Release Summary via `id: update-rtd`
-
-### README.md
-
-Removed a stale hardcoded version badge that was left over from an earlier release.
-
-## Full changelog
-
-See [`CHANGELOG.md`](CHANGELOG.md) for the complete list of changes.
+**Full changelog**: https://github.com/apisani1/langchain-prolog/compare/v1.0.2...v1.0.3
