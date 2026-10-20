@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -25,12 +25,18 @@ jobs:
             "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/" | jq
 
       - name: Create tag if needed
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
-          TAG="v${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9A-Za-z.+-]+$ ]]; then
+            echo "::error::Invalid version: $VERSION"
+            exit 1
+          fi
+          TAG="v$VERSION"
           if ! git tag -l | grep -q "^$TAG$"; then
             echo "Tag $TAG doesn't exist locally. Creating it..."
-            git tag $TAG
-            git push origin $TAG
+            git tag "$TAG"
+            git push origin "$TAG"
             echo "Tag $TAG created and pushed."
           else
             echo "Tag $TAG already exists."
@@ -48,21 +54,25 @@ jobs:
         run: sleep 20
 
       - name: Active version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
-          echo "Activating version v${{ github.event.inputs.version }}"
+          echo "Activating version v$VERSION"
           curl -X PATCH \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"active": true}' \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v${{ github.event.inputs.version }}/"
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v$VERSION/"
 
       - name: Trigger build
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
-          echo "Triggering build for version ${{ github.event.inputs.version }}..."
+          echo "Triggering build for version $VERSION..."
           curl -X POST \
             -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
             -H "Content-Type: application/json" \
-            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v${{ github.event.inputs.version }}/builds/"
+            "https://readthedocs.org/api/v3/projects/langchain-prolog/versions/v$VERSION/builds/"
 
       - name: Check build status
         run: |

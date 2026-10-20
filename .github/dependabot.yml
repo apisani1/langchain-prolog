@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keeps the SHA-pinned GitHub Actions in .github/workflows up to date.
+  # Minor and patch bumps are batched into one PR. Major bumps match no group, so each arrives as its
+  # own PR (e.g. "Bump actions/checkout from 4.4.0 to 5.0.0") and gets a deliberate look at release notes.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "github_actions"]
+    groups:
+      github-actions-minor-patch:
+        update-types: ["minor", "patch"]
+        patterns: ["*"]
