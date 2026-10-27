@@ -204,8 +204,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         # Load the consult_ex module
         try:
             with resources.files("langchain_prolog").joinpath("consult_ex.pl").open("r") as f:
-                consult_ex_path = Path(f.name)
-                janus.consult(str(consult_ex_path))
+                janus.consult(str(Path(f.name)))
         except Exception as e:
             raise PrologRuntimeError(f"Error loading Prolog consult_ex module: {str(e)}")
 
