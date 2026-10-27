@@ -22,7 +22,7 @@ on:
 
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read         # for actions/checkout
       pull-requests: write   # for the "Comment PR with documentation preview" step
