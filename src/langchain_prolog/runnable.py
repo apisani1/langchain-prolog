@@ -383,9 +383,10 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         kind, name, arity = shape
         try:
             answer = janus.query_once(
-                f"safe_query:prepare_query(Text, {kind}, Name, Arity, Extra, Status, Message)",
+                "safe_query:prepare_query(Text, Kind, Name, Arity, Extra, Status, Message)",
                 {
                     "Text": query,
+                    "Kind": kind,
                     "Name": name,
                     "Arity": arity,
                     "Extra": list(self._prolog_config.allowed_predicates),
