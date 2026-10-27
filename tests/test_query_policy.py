@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import janus_swi as janus
 import pytest
 from langchain_core.tools import ToolException
 from pydantic import ValidationError
@@ -329,7 +330,9 @@ def test_prolog_kwargs_still_reach_the_query(runnable):
 def test_variable_names_and_quoted_atoms_survive_the_check(runnable):
     result = runnable.invoke("Person = 'John Smith', Other = \"text\", policy_partner(john, Child)")
     assert result[0]["Person"] == "John Smith"
-    assert result[0]["Other"] == "text"
+    # What "text" reads as depends on the double_quotes flag, which an init file may change, so compare against
+    # an unchecked query instead of a fixed value
+    assert result[0]["Other"] == janus.query_once('Other = "text"')["Other"]
     assert result[0]["Child"] == "bianca"
 
 
