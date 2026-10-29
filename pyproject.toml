@@ -76,12 +76,14 @@ include = ["src/langchain_prolog"]
 
 [tool.hatch.build.targets.sdist.force-include]
 "src/langchain_prolog/consult_ex.pl" = "src/langchain_prolog/consult_ex.pl"
+"src/langchain_prolog/safe_query.pl" = "src/langchain_prolog/safe_query.pl"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/langchain_prolog"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/langchain_prolog/consult_ex.pl" = "src/langchain_prolog/consult_ex.pl"
+"src/langchain_prolog/safe_query.pl" = "src/langchain_prolog/safe_query.pl"
 
 [tool.semantic_release]
 version_variable = [

@@ -470,7 +470,8 @@ def test_tool_error_propagation(prolog_tool):
     # Test invalid arity
     with pytest.raises(ToolException) as exc_info:
         prolog_tool.run("partner(X, Y, Z)")  # partner is binary
-    assert "there are definitions for" in str(exc_info.value).lower()
+    assert "partner/3 is not allowed" in str(exc_info.value)
+    assert "partner/2 is defined" in str(exc_info.value)
 
 
 def test_tool_config_inheritance():

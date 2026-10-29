@@ -6,6 +6,7 @@ ELEMENTS = [
     ("home", "", ""),
     ("runnable", "", ""),
     ("tool", "", ""),
+    ("security", "", ""),
 ]
 
 

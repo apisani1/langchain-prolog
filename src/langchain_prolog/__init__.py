@@ -11,6 +11,7 @@ Key Components:
     - PrologResult: Type representing possible Prolog query results
     - PrologInput: Type representing valid input formats
     - PrologRuntimeError: Exception class for Prolog execution errors
+    - PrologQueryNotAllowedError: Exception class for queries refused by the query policy
 
 Requirements:
     - Python 3.9 or higher
@@ -28,6 +29,7 @@ from ._prolog_init import initialize_prolog
 from .exceptions import (
     PrologFileNotFoundError,
     PrologInitializationError,
+    PrologQueryNotAllowedError,
     PrologRuntimeError,
     PrologToolException,
     PrologValueError,
@@ -50,6 +52,7 @@ __all__ = [
     "PrologInitializationError",
     "PrologToolException",
     "PrologValueError",
+    "PrologQueryNotAllowedError",
     "PrologResult",
     "PrologTool",
     "ValidationError",

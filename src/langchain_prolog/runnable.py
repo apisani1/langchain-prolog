@@ -1,4 +1,5 @@
 __all__ = ["PrologConfig", "PrologInput", "PrologSolution", "PrologResult", "PrologRunnable"]
+import re
 from importlib import resources
 from pathlib import Path
 from typing import (
@@ -43,9 +44,11 @@ from pydantic import (
 
 from .exceptions import (
     PrologFileNotFoundError,
+    PrologQueryNotAllowedError,
     PrologRuntimeError,
     PrologValueError,
 )
+from .logger import logger
 
 
 set_verbose(False)
@@ -55,6 +58,11 @@ set_llm_cache(None)
 PrologInput = Optional[Union[str, Dict[Any, Any], BaseModel]]
 PrologSolution = Dict[Any, Any]
 PrologResult = Union[Literal[True], Literal[False], List[PrologSolution], PrologRuntimeError]
+
+# Shape a query must have: (kind, predicate name, arity), as understood by safe_query:prepare_query/7
+_QueryShape = Tuple[str, str, int]
+_ANY_QUERY: _QueryShape = ("any", "", 0)
+_PREDICATE_INDICATOR = re.compile(r"^[a-z][A-Za-z0-9_]*/[0-9]+$")
 
 
 class _DoNothing(BaseCallbackHandler):
@@ -86,6 +94,27 @@ class PrologConfig(BaseModel):
     )
     query_schema: Optional[Type[BaseModel]] = Field(default=None, description="Pydantic model for input validation")
     prolog_flags: Dict[str, Any] = Field(default_factory=dict, description="Custom Prolog flags to set")
+    allowed_predicates: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Extra predicates, written as name/arity, that queries may call besides the predicates defined by the "
+            "rules file and the built-in safe predicates"
+        ),
+    )
+    unrestricted_queries: bool = Field(
+        default=False,
+        description=(
+            "UNSAFE: run queries without checking which predicates they call. Never enable it when queries come "
+            "from an LLM or any other untrusted source"
+        ),
+    )
+
+    @field_validator("allowed_predicates", mode="before")
+    def validate_allowed_predicates(cls, v: List[str]) -> List[str]:
+        invalid = [item for item in v if not isinstance(item, str) or not _PREDICATE_INDICATOR.match(item)]
+        if invalid:
+            raise PrologValueError(f"Allowed predicates must be written as name/arity: {invalid}")
+        return v
 
     @field_validator("rules_file", mode="before")
     def validate_rules_file(cls, v: Optional[Union[str, Path]]) -> Optional[Path]:
@@ -175,10 +204,19 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         # Load the consult_ex module
         try:
             with resources.files("langchain_prolog").joinpath("consult_ex.pl").open("r") as f:
-                consult_ex_path = Path(f.name)
-                janus.consult(str(consult_ex_path))
+                janus.consult(str(Path(f.name)))
         except Exception as e:
             raise PrologRuntimeError(f"Error loading Prolog consult_ex module: {str(e)}")
+
+        # Load the query policy module
+        try:
+            with resources.files("langchain_prolog").joinpath("safe_query.pl").open("r") as f:
+                janus.consult(str(Path(f.name)))
+        except Exception as e:
+            raise PrologRuntimeError(f"Error loading Prolog safe_query module: {str(e)}")
+
+        if prolog_config.unrestricted_queries:
+            logger.warning("Query checking is disabled: queries can call any predicate, including shell/1")
 
         # Load rules file if specified
         if prolog_config.rules_file:
@@ -214,9 +252,9 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         if not rules_path.exists():
             raise PrologFileNotFoundError(f"Prolog rules file not found: {rules_file}")
         try:
-            # Convert path to Prolog atom string (with single quotes)
-            prolog_path = f"'{str(rules_path)}'"
-            janus.query_once(f"consult_ex({prolog_path})")
+            # The path travels as a bound value, never as query text, so it cannot change the query
+            janus.query_once("consult_ex(Path)", {"Path": str(rules_path)})
+            janus.query_once("safe_query:register_rules(Path)", {"Path": str(rules_path)})
         except Exception as e:
             raise PrologRuntimeError(f"Error loading Prolog rules: {str(e)}")
 
@@ -307,16 +345,73 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
 
         raise PrologValueError("Input must be either string or valid Pydantic model")
 
+    def _query_shape(self, input_data: Union[str, BaseModel]) -> _QueryShape:
+        """
+        Describe what a query built from this input may call.
+
+        A schema input must produce exactly one call of the schema predicate with one argument per field, and an
+        arguments-only string exactly one call of the default predicate, so a value cannot add goals of its own.
+
+        Args:
+            input_data (str | BaseModel): Processed input, as returned by _process_input
+
+        Returns:
+            The (kind, name, arity) triple that safe_query:prepare_query/7 checks the query against
+        """
+        if isinstance(input_data, BaseModel):
+            return ("exact", input_data.__class__.__name__, len(list(input_data)))
+        if "(" not in input_data and self._prolog_config.default_predicate:
+            return ("call", self._prolog_config.default_predicate, 0)
+        return _ANY_QUERY
+
+    def _check_query(self, query: str, shape: _QueryShape) -> str:
+        """
+        Check a query against the query policy.
+
+        Args:
+            query (str): Prolog query string
+            shape (tuple): Shape the query must have, as returned by _query_shape
+
+        Returns:
+            The text to execute, which is generated from the checked query and not copied from it
+
+        Raises:
+            PrologQueryNotAllowedError: If the query calls a predicate the policy does not allow
+            PrologRuntimeError: If the query is not valid Prolog
+        """
+        kind, name, arity = shape
+        try:
+            answer = janus.query_once(
+                "safe_query:prepare_query(Text, Kind, Name, Arity, Extra, Status, Message)",
+                {
+                    "Text": query,
+                    "Kind": kind,
+                    "Name": name,
+                    "Arity": arity,
+                    "Extra": list(self._prolog_config.allowed_predicates),
+                },
+            )
+        except Exception as e:
+            raise PrologRuntimeError(f"Prolog execution error: {str(e)}")
+
+        status, message = answer["Status"], answer["Message"]
+        if status == "denied":
+            raise PrologQueryNotAllowedError(f"Prolog execution error: query not allowed: {message}")
+        if status != "ok":
+            raise PrologRuntimeError(f"Prolog execution error: {message}")
+        return str(message)
+
     @staticmethod
     def _get_prolog_kwargs(config: RunnableConfig) -> Dict[str, str]:
         return config.get("configurable", {}).get("prolog_kwargs", {})
 
-    def _execute_query(self, query: str, **kwargs: Any) -> Iterator[Dict[Any, Any]]:
+    def _execute_query(self, query: str, shape: _QueryShape = _ANY_QUERY, **kwargs: Any) -> Iterator[Dict[Any, Any]]:
         """
         Execute a Prolog query safely.
 
         Args:
             query (str): Prolog query string
+            shape (tuple): Shape the query must have, as returned by _query_shape
             **kwargs: Additional arguments for query execution.
                     Supported keyword arguments: inputs, truth_vals
 
@@ -325,12 +420,16 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
 
         Raises:
             PrologValueError: If unsupported query keyword arguments are provided
+            PrologQueryNotAllowedError: If the query calls a predicate the query policy does not allow
             PrologRuntimeError: If query execution fails
         """
         valid_kwargs = {"inputs", "truth_vals"}
         invalid_kwargs = set(kwargs.keys()) - valid_kwargs
         if invalid_kwargs:
             raise PrologValueError(f"Unsupported query arguments: {invalid_kwargs}")
+
+        if not self._prolog_config.unrestricted_queries:
+            query = self._check_query(query, shape)
 
         try:
             return janus.query(query, **kwargs)
@@ -357,6 +456,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
 
         Raises:
             PrologValueError: If input type is invalid or schema is missing for a dictionay input
+            PrologQueryNotAllowedError: If the query calls a predicate the query policy does not allow
             PrologRuntimeError: If query execution fails
         """
         config = config or {}
@@ -385,8 +485,9 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
 
             processed_input = self._process_input(input)
             query = self._build_query(processed_input)
+            shape = self._query_shape(processed_input)
             prolog_kwargs = self._get_prolog_kwargs(config)
-            solutions = list(self._execute_query(query, **prolog_kwargs))
+            solutions = list(self._execute_query(query, shape, **prolog_kwargs))
 
             if len(solutions) == 0 or all(sol == {"truth": False} for sol in solutions):
                 result = False
@@ -447,6 +548,7 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
 
         Raises:
             PrologValueError: If input type is invalid or schema is missing for dictionary input
+            PrologQueryNotAllowedError: If the query calls a predicate the query policy does not allow
             PrologRuntimeError: If query execution fails
         """
         config = config or {}
@@ -473,10 +575,11 @@ class PrologRunnable(Runnable[PrologInput, PrologResult]):
         try:
             processed_input = self._process_input(input)
             query = self._build_query(processed_input)
+            shape = self._query_shape(processed_input)
             prolog_kwargs = self._get_prolog_kwargs(config)
 
             # Create an iterator for the solutions
-            solutions_iter = self._execute_query(query, **prolog_kwargs)
+            solutions_iter = self._execute_query(query, shape, **prolog_kwargs)
 
             # Try to get the first solution
             try:
