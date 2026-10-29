@@ -8,8 +8,9 @@
 % is exactly what was checked.
 %
 % Policy: a goal may be a control construct, a predicate from the allow-list below, a predicate listed by the
-% caller, or a predicate defined by a rules file that was loaded through register_rules/1. Anything else
-% (including every module-qualified goal and every unbound goal) is refused.
+% caller, or a predicate defined by a rules file that was loaded through register_rules/1. Predicates of a
+% library that a rules file loads are not callable. Anything else (including every module-qualified goal and
+% every unbound goal) is refused.
 
 :- module(safe_query,
           [ prepare_query/7,
@@ -302,8 +303,16 @@ user_predicate(Goal) :-
     current_predicate(_, user:Goal),
     \+ predicate_property(user:Goal, built_in),
     \+ predicate_property(user:Goal, foreign),
+    \+ imported_from_library(Goal),
     predicate_property(user:Goal, file(File)),
     trusted_file(File).
+
+%   imported_from_library(+Goal): Goal is exported by a module that a rules file loaded, as opposed to a rules
+%   file that is itself a module. Rules may use such a library, but queries may not, wherever it is installed.
+imported_from_library(Goal) :-
+    predicate_property(user:Goal, imported_from(Module)),
+    \+ ( module_property(Module, file(ModuleFile)),
+         rules_root(ModuleFile) ).
 
 trusted_file(File) :-
     \+ in_system_library(File),

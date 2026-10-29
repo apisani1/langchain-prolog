@@ -367,6 +367,28 @@ def test_rules_files_can_use_libraries_but_queries_cannot_reach_them(tmp_path):
         assert_not_allowed(r, query)
 
 
+def test_libraries_outside_the_prolog_home_are_not_callable(tmp_path):
+    """A library a rules file loads stays out of reach of queries, even when it is not a system library."""
+    (tmp_path / "policy_extlib.pl").write_text(":- module(policy_extlib, [policy_ext_run/1]).\npolicy_ext_run(x).\n")
+    rules = tmp_path / "policy_uses_ext.pl"
+    rules.write_text(":- use_module(policy_extlib).\npolicy_via_ext(X) :- policy_ext_run(X).\n")
+    r = PrologRunnable(PrologConfig(rules_file=rules))
+    assert r.invoke("policy_via_ext(X)") == [{"X": "x"}]
+    assert_not_allowed(r, "policy_ext_run(X)")
+
+
+def test_a_rules_file_that_is_a_module_exports_its_predicates(tmp_path):
+    rules = tmp_path / "policy_mod_rules.pl"
+    rules.write_text(
+        ":- module(policy_mod_rules, [policy_exported/1]).\n"
+        "policy_exported(X) :- policy_hidden(X).\n"
+        "policy_hidden(1).\n"
+    )
+    r = PrologRunnable(PrologConfig(rules_file=rules))
+    assert r.invoke("policy_exported(X)") == [{"X": 1}]
+    assert_not_allowed(r, "policy_hidden(X)")
+
+
 def test_a_rule_may_use_what_a_query_may_not(tmp_path):
     """The rules file is trusted code; only the query is checked."""
     marker = tmp_path / "marker"
