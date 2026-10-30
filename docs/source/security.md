@@ -9,7 +9,9 @@ generated from the checked term, never copied from the text. A query may call:
 
 - control constructs (`,`, `;`, `->`, `\+`) and the meta predicates `findall`, `bagof`, `setof`, `aggregate_all`,
   `forall`, `once` and `ignore`, whose goal arguments are checked in turn;
-- the predicates defined by your rules files, and the files they `include` or load, which are trusted;
+- the predicates defined by your rules files and the files they `include` or consult, which are trusted; a rules file
+  that is a module offers its exported predicates. A library that a rules file loads with `use_module` is not
+  trusted: your rules may use it, but queries may not, wherever the library is installed;
 - a fixed set of predicates that only compute: unification and comparison, arithmetic, type checks and the usual list,
   atom and string predicates (`member/2`, `append/3`, `length/2`, `atom_length/2`, `sub_atom/5` and the like);
 - the predicates you list in `allowed_predicates`.
