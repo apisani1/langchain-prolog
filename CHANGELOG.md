@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0] - 2026-10-29
+
+### Breaking Changes
+
+- **Queries are checked before they run.** The query text is parsed, every goal is checked against a policy, and the query that runs is generated from the checked term. A query may call control constructs, the meta predicates `findall`, `bagof`, `setof`, `aggregate_all`, `forall`, `once` and `ignore` (whose goal arguments are checked too), the predicates defined by the rules file and the files it includes or consults, a fixed set of pure predicates (unification, comparison, arithmetic, type checks, list/atom/string predicates), and the predicates in `allowed_predicates`. Anything else raises `PrologQueryNotAllowedError`.
+- Refused goals include `shell/1`, `assertz/1`, file and stream I/O, module-qualified goals, `call/1` and unbound goals, and any text after the first term.
+- Predicates exported by a library that a rules file loads (system libraries, packs, user libraries) can no longer be called from queries; rules can still use them. A rules file that is itself a module still exposes its exported predicates.
+- With a `query_schema`, the query must be exactly one call of the schema predicate with one argument per field; an arguments-only string must be exactly one call of the default predicate.
+- Calling a rules predicate with the wrong arity now fails with `Predicate p/3 is not allowed in queries, but p/2 is defined` instead of Prolog's existence error.
+- **Migration:** add any extra predicates your queries need to `allowed_predicates` (as `name/arity`), or expose them through a rule. `PrologQueryNotAllowedError` is a `PrologRuntimeError`, so existing error handling keeps catching refused queries. `unrestricted_queries=True` restores the old behavior, but never use it for queries written by an LLM.
+
+### Added
+
+- `PrologConfig.allowed_predicates`: extra predicates, written as `name/arity`, that queries may call.
+- `PrologConfig.unrestricted_queries`: skips query checking and logs a warning (unsafe).
+- `PrologQueryNotAllowedError`, exported from `langchain_prolog`.
+
+### Security
+
+- The rules file path is passed to Prolog as a bound value instead of being quoted into query text, so a path containing a quote is loaded as a path.
+
+### Documentation
+
+- New **Query Safety** section in the docs and README; the PrologTool docs link to it.
+
+### Internal
+
+- `safe_query.pl` is included in the sdist and wheel.
+- CI: runners pinned to `ubuntu-24.04` for the SWI-Prolog PPA; `actions/setup-python` v7.1.0, `astral-sh/setup-uv` v10.3.2.
+- New query-policy test suite; tests no longer depend on the SWI-Prolog `double_quotes` flag.
+
 ## [1.0.3] - 2026-10-19
 
 ### Fixed

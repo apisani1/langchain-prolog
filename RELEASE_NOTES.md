@@ -1,16 +1,32 @@
-## langchain-prolog v1.0.3
+## langchain-prolog v2.0.0
 
-Maintenance release: no changes to the public API or runtime behavior.
+Prolog queries are now checked before they run. A `PrologTool` query is written by an LLM, and until this release it reached the interpreter unchecked, so it could call `shell/1`, `assertz/1` or open files with the privileges of your process. This release refuses those queries by default.
 
-### Fixed
+### Breaking Changes
 
-- PyPI badge in the README and docs is now static, so it no longer displays a stale cached version.
-- `run.sh` activates the worktree's own virtual environment.
+- A query may call your rules, a fixed set of pure predicates (unification, comparison, arithmetic, type checks, list/atom/string predicates), the meta predicates `findall`, `bagof`, `setof`, `aggregate_all`, `forall`, `once` and `ignore` (whose goals are checked too), and anything you list in `allowed_predicates`. Everything else raises `PrologQueryNotAllowedError`.
+- Refused goals include `shell/1`, `assertz/1`, file I/O, module-qualified goals, `call/1`, unbound goals, and anything after the first term.
+- Predicates of libraries your rules file loads are no longer callable from queries; your rules can still use them. A rules file that is itself a module still exposes its exports.
+- With a `query_schema` or `default_predicate`, a value can no longer add goals: the query must be a single call of that predicate.
+- Wrong-arity calls now report which arities exist, e.g. `Predicate partner/3 is not allowed in queries, but partner/2 is defined`.
 
-### Internal
+### Upgrading
 
-- Dev environment synced with generate-project v2.5.0 (new `make run` and worktree lifecycle targets).
-- CI: Claude PR Assistant workflow, Dependabot for GitHub Actions, and updated `actions/checkout`, `actions/cache`, and `astral-sh/setup-uv`.
-- Minor code cleanups in `tool.py` and `exceptions.py` (import path, redundant `pass`, pylint fixes).
+- `PrologQueryNotAllowedError` is a `PrologRuntimeError`, so code that already catches `PrologRuntimeError` keeps working.
+- If your queries call predicates outside your rules, list them: `PrologConfig(rules_file="family.pl", allowed_predicates=["format/2"])`. Allow only predicates that are harmless whatever arguments an LLM picks, and avoid meta predicates such as `maplist/2`, whose goal arguments are not checked.
+- `unrestricted_queries=True` turns the check off and logs a warning. Use it only when every query comes from your own code.
 
-**Full changelog**: https://github.com/apisani1/langchain-prolog/compare/v1.0.2...v1.0.3
+### Added
+
+- `PrologConfig.allowed_predicates` and `PrologConfig.unrestricted_queries`.
+- `PrologQueryNotAllowedError`, exported from `langchain_prolog`.
+
+### Security
+
+- The rules file path is passed to Prolog as a value instead of being quoted into query text.
+
+### Documentation
+
+- New **Query Safety** guide covering what is allowed, how to allow more, and what the check does not cover (resource limits, rules that call their arguments, a shared interpreter).
+
+**Full changelog**: https://github.com/apisani1/langchain-prolog/compare/v1.0.3...v2.0.0
